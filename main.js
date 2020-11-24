@@ -1,6 +1,37 @@
 // Modules to control application life and create native browser window
-const {app, BrowserWindow} = require('electron')
+const {app, BrowserWindow, dialog} = require('electron')
 const path = require('path')
+const exec = require('child_process').exec;
+const { ipcMain ,ipcRenderer} = require('electron')
+
+function execute(command, callback) {
+  exec(command, (error, stdout, stderr) => { 
+      callback(stdout); 
+  });
+};
+
+function compile(){
+  return new Promise((resolve,reject)=>{
+    execute('npm run pack', (output) => {
+      resolve(output);
+    });
+  })
+}
+
+ipcMain.on('compile-prompt', async (event, arg) => {
+  console.log("compiling");
+  let output = await compile();
+  createWindow();
+  
+  return;
+})
+
+let editor;
+let project_path;
+// call the function
+
+
+
 
 function createWindow () {
   // Create the browser window.
@@ -8,13 +39,27 @@ function createWindow () {
     width: 800,
     height: 600,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js')
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: true, // <--- flag
+      nodeIntegrationInWorker: true // <---  for web workers
     }
   })
-
+  if(editor) editor.close();
+  editor = mainWindow;
+  mainWindow.maximize();
+  mainWindow.webContents.openDevTools();
   // and load the index.html of the app.
-  mainWindow.loadFile('index.html')
-
+  mainWindow.loadFile('target/index.html')
+  if(!project_path){
+    project_path = dialog.showOpenDialogSync(mainWindow,{
+      title:"Open package.json",
+      filters:[
+        {name:"JSON",extensions:["json"]}
+      ]
+     }
+    )
+    //ipcRenderer.sendSync('project_path', project_path);
+  }
   // Open the DevTools.
   // mainWindow.webContents.openDevTools()
 }

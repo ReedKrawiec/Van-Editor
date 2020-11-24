@@ -1,0 +1,78 @@
+<!DOCTYPE html style="overflow:hidden;">
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="shortcut icon" href="#">
+  <title>Van</title>
+  <link href="https://fonts.googleapis.com/css2?family=Alata&display=swap" rel="stylesheet">
+  <style>
+    html{
+      transform: transale3d(0,0,0)
+    }
+    body{
+      overflow: hidden;
+      margin: 0;
+      background-color: rgb(19, 19, 19);
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      flex-direction: row;
+    }
+    #target{
+      cursor:none;
+    }
+    .column{
+      display:flex;
+      align-items:center;
+      justify-content: start;
+      flex-direction: column;
+    }
+    .row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      flex-direction: row;
+    }
+    p{
+      width: 880px;
+      color: white;
+      font-size: 3em;
+      padding: 0;
+      margin: 0;
+      font-family:roboto;
+      margin-bottom:40px;
+    }
+    .stretch{
+      width:100vw;
+      height:auto;
+    }
+    
+    
+
+  </style>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@900&display=swap" rel="stylesheet">
+</head>
+<body class="stretch column">
+  <!--<p>Basic 2D Demo</p>-->
+  <div class = "row">
+    <canvas height="600" width="960" id="debug_target" ></canvas>
+    <canvas height="600" width="960" id="target" ></canvas>
+  </div>
+  <div class="row">
+    <button id="pause_button">PAUSE</button>
+    <button id="compile_button">RECOMPILE</button>
+  </div>
+  
+</body>
+<script>
+  const { ipcRenderer} = require('electron');
+  document.getElementById("compile_button").addEventListener("click",()=>{
+    ipcRenderer.sendSync('compile-prompt', 'ping')
+  })
+  ipcRenderer.on('project_path', async (event, arg) => {
+    console.log("project_path");
+  })
+</script>
+ <script type="module" src="./van.js"></script>
+</html>
