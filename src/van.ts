@@ -256,23 +256,23 @@ export class game<T>{
       });
 
       let left_func = ()=>{
-        let shift_held = held_keys["Shift"] ? 1:0;
+        let shift_held = held_keys["ShiftLeft"] ? 1:0;
         if(DEBUG_v.last_clicked.id == "debug_target")
           DEBUG_v.camera.state.position.x = DEBUG_v.camera.state.position.x - ((5 + shift_held * 5) * (1/DEBUG_v.camera.state.scaling));
       };
       let right_func = ()=>{
-        let shift_held = held_keys["Shift"] ? 1:0;
+        let shift_held = held_keys["ShiftLeft"] ? 1:0;
         if(DEBUG_v.last_clicked.id == "debug_target")
           DEBUG_v.camera.state.position.x = DEBUG_v.camera.state.position.x + ((5 + shift_held * 5) * (1/DEBUG_v.camera.state.scaling));
       };
       let down_func = ()=>{
-        let shift_held = held_keys["Shift"] ? 1:0;
+        let shift_held = held_keys["ShiftLeft"] ? 1:0;
         
         if(!held_keys["Control"] && DEBUG_v.last_clicked.id == "debug_target")
           DEBUG_v.camera.state.position.y = DEBUG_v.camera.state.position.y - ((5 + shift_held * 5) * (1/DEBUG_v.camera.state.scaling));
       };
       let up_func = ()=>{
-        let shift_held = held_keys["Shift"] ? 1:0;
+        let shift_held = held_keys["ShiftLeft"] ? 1:0;
         if(DEBUG_v.last_clicked.id == "debug_target")
           DEBUG_v.camera.state.position.y = DEBUG_v.camera.state.position.y + ((5 + shift_held * 5) * (1/DEBUG_v.camera.state.scaling));
       };
@@ -281,7 +281,7 @@ export class game<T>{
           DEBUG_v.camera.state.scaling = DEBUG_v.camera.state.scaling + 0.05;
       }
       let save_func = ()=>{
-        let ctrl_held = held_keys["Control"];
+        let ctrl_held = held_keys["ControlLeft"];
         if(ctrl_held && PAUSED){
           console.log("SAVE");
         }

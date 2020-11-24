@@ -1,4 +1,4 @@
-import {game, GetScreenDimensions,GetViewportDimensions} from "../van";
+import {game,PAUSED,DEBUG,DEBUG_v, GetScreenDimensions,GetViewportDimensions} from "../van";
 import { collision_box } from "./collision";
 import {obj} from "./object";
 import { Camera } from "./render";
@@ -27,7 +27,7 @@ interface keyBinds{
 }
 let target = document.getElementById("target");
 export function init_click_handler(game:game<unknown>){
-  target.addEventListener("click",(e)=>{
+  window.addEventListener("click",(e)=>{
     let mouse = Poll_Mouse(game.state.canvas,game.state.cameras[0]);
     let box:collision_box = {
       x:mouse.x,
@@ -35,7 +35,22 @@ export function init_click_handler(game:game<unknown>){
       height:1,
       width:1
     };
-    let d = [...all_binds];
+    
+  let d:bind[];
+  if(DEBUG){
+    if(DEBUG_v.last_clicked.id == "debug_target"){
+      d = [...debug_binds];
+    }
+    else if(!PAUSED && DEBUG_v.last_clicked.id == "target"){
+      d= [...all_binds]
+    }
+    else{
+      d = [];
+    }
+  }
+  else{
+    d = [...all_binds];
+  }
     for(let a = 0;a < d.length;a++){
       let selected = d[a];
       if(selected.type === btype.mouse && selected.key === "mouse1" && selected.execute == exec_type.once){
@@ -53,10 +68,25 @@ export function init_click_handler(game:game<unknown>){
 }
 
 
-target.addEventListener("mousedown", (e) => {
+window.addEventListener("mousedown", (e) => {
   e.preventDefault();
-  let d = [...all_binds];
-  for (let a = 0; a < all_binds.length; a++) {
+  
+  let d:bind[];
+  if(DEBUG){
+    if(DEBUG_v.last_clicked.id == "debug_target"){
+      d = [...debug_binds];
+    }
+    else if(!PAUSED && DEBUG_v.last_clicked.id == "target"){
+      d= [...all_binds]
+    }
+    else{
+      d = [];
+    }
+  }
+  else{
+    d = [...all_binds];
+  }
+  for (let a = 0; a < d.length; a++) {
     let selected = d[a];
     if (selected.type === btype.mouse && selected.key === ("mouse" + e.button + "down")  && !selected.executed) {
       if(selected.execute === exec_type.once){
@@ -67,16 +97,52 @@ target.addEventListener("mousedown", (e) => {
       }
       selected.executed = true;
     }
+    if (selected.type === btype.mouse && (selected.key === ("mouse" + e.button + "up") || selected.key == "mouseup") && selected.executed && selected.execute === exec_type.once) {
+      selected.executed = false;
+   }
+   else if(selected.type === btype.mouse && (selected.key === ("mouse" + e.button + "up") || selected.key == "mouseup") && selected.executed && selected.execute === exec_type.repeat){
+     let g = [...repeat_binds];
+     for(let a = 0; a < g.length;a++){
+       if(g[a].bind.id === selected.id){
+         selected.executed = false;
+         g[a].active = false;
+         break;
+       }
+     }
+   }
   }
 })
 
-target.addEventListener("mouseup", (e) => {
-  let d = [...all_binds];
-  for (let a = 0; a < all_binds.length; a++) {
+window.addEventListener("mouseup", (e) => {
+  
+  let d:bind[];
+  if(DEBUG){
+    if(DEBUG_v.last_clicked.id == "debug_target"){
+      d = [...debug_binds];
+    }
+    else if(!PAUSED && DEBUG_v.last_clicked.id == "target"){
+      d= [...all_binds]
+    }
+    else{
+      d = [];
+    }
+  }
+  else{
+    d = [...all_binds];
+  }
+  for (let a = 0; a < d.length; a++) {
     let selected = d[a];
-    if (selected.type === btype.mouse && (selected.key === e.type) && selected.executed && selected.execute === exec_type.once) {
+    if (selected.type === btype.mouse && selected.key === ("mouse" + e.button + "up")  && !selected.executed) {
+      if(selected.execute === exec_type.once){
+        selected.function();
+      }
+      else if(selected.execute === exec_type.repeat){
+        selected.repeat_timer.active = true;
+      }
+      selected.executed = true;
+    }
+    if (selected.type === btype.mouse && (selected.key === ("mouse" + e.button + "down") || selected.key == "mousedown") && selected.executed && selected.execute === exec_type.once) {
        selected.executed = false;
-      
     }
     else if(selected.type === btype.mouse && (selected.key === ("mouse" + e.button + "down") || selected.key == "mousedown") && selected.executed && selected.execute === exec_type.repeat){
       let g = [...repeat_binds];
@@ -97,10 +163,61 @@ interface held_keys{
 
 export let held_keys:held_keys = {};
 
+window.addEventListener("wheel",(e)=>{
+  let code:string;
+
+  if(e.deltaY < 0){
+    code = "scrollup";
+  }
+  else if(e.deltaY > 0){
+    code = "scrolldown";
+  }
+
+  let d:bind[];
+  if(DEBUG){
+    if(DEBUG_v.last_clicked.id == "debug_target"){
+      d = [...debug_binds];
+    }
+    else if(!PAUSED && DEBUG_v.last_clicked.id == "target"){
+      d= [...all_binds]
+    }
+    else{
+      d = [];
+    }
+  }
+  else{
+    d = [...all_binds];
+  }
+  
+  for (let a = 0; a < d.length; a++) {
+    let selected = d[a];
+    if (selected.type === btype.mouse && selected.key === code) {
+      if(selected.execute === exec_type.once){
+        selected.function();
+      }
+    }
+  }
+})
+
 window.addEventListener("keydown", (e) => {
   held_keys[e.code] = true;
-  let d = [...all_binds];
-  for (let a = 0; a < all_binds.length; a++) {
+  
+  let d:bind[];
+  if(DEBUG){
+    if(DEBUG_v.last_clicked.id == "debug_target"){
+      d = [...debug_binds];
+    }
+    else if(!PAUSED && DEBUG_v.last_clicked.id == "target"){
+      d= [...all_binds]
+    }
+    else{
+      d = [];
+    }
+  }
+  else{
+    d = [...all_binds];
+  }
+  for (let a = 0; a < d.length; a++) {
     let selected = d[a];
     if (selected.type === btype.keyboard && selected.key === e.code  && !selected.executed) {
       if(selected.execute === exec_type.once){
@@ -121,8 +238,23 @@ window.addEventListener("keydown", (e) => {
 })
 window.addEventListener("keyup", (e) => {
   held_keys[e.code] = false;
-  let d = [...all_binds];
-  for (let a = 0; a < all_binds.length; a++) {
+  
+  let d:bind[];
+  if(DEBUG){
+    if(DEBUG_v.last_clicked.id == "debug_target"){
+      d = [...debug_binds];
+    }
+    else if(!PAUSED && DEBUG_v.last_clicked.id == "target"){
+      d= [...all_binds]
+    }
+    else{
+      d = [];
+    }
+  }
+  else{
+    d = [...all_binds];
+  }
+  for (let a = 0; a < d.length; a++) {
     let selected = d[a];
     if (selected.type === btype.keyboard && selected.key === e.code && selected.executed) {
       if(selected.execute === exec_type.once ){
@@ -143,7 +275,7 @@ window.addEventListener("keyup", (e) => {
 
 })
 let tracker = document.getElementById("target");
-tracker.addEventListener("mousemove", (e) => {
+window.addEventListener("mousemove", (e) => {
   var rect = (e.target as HTMLCanvasElement).getBoundingClientRect() ;
   
   last_x = x;
