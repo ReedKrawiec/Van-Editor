@@ -1,8 +1,8 @@
-import {platformer_obj,plat_state} from "./platformer_obj";
+import {platformer_obj,plat_state} from "./abstract/platformer_obj";
 import {obj_state,position} from "../../lib/state";
 import { exec_type } from "../../lib/controls";
 
-export class Box extends platformer_obj<obj_state>{
+export class box extends platformer_obj<obj_state>{
   sprite_url = "./sprites/box.png"
   collision = true
   height = 64;
@@ -10,8 +10,8 @@ export class Box extends platformer_obj<obj_state>{
   gravity = false;
   enemy = false;
   tags = ["static"]
-  constructor(a:position,b:number){
-    super(a,b,Box.default_params);
+  constructor(a:position,b:number,c:number){
+    super(a,b,c,box.default_params);
     this.state = {
       position:a,
       velocity:{
@@ -20,9 +20,4 @@ export class Box extends platformer_obj<obj_state>{
       }
     }
   }
-}
-export class VertBox extends Box{
-  sprite_url = "./sprites/box2.png";
-  width = 64;
-  height = 500;
 }

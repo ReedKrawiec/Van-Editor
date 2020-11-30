@@ -1,8 +1,8 @@
-import {platformer_obj, plat_state} from "./platformer_obj";
+import {platformer_obj, plat_state} from "./abstract/platformer_obj";
 import {obj_state} from "../../lib/state";
 import { exec_type } from "../../lib/controls";
 import {rotation_length, obj} from "../../lib/object";
-import { Goomba } from "./goomba";
+import { Goomba } from "./Goomba";
 import {g} from "../main";
 
 interface bullet_state extends obj_state{
@@ -17,15 +17,15 @@ interface position{
   y:number
 }
 
-export class Bullet extends obj<bullet_state>{
+export class bullet extends obj<bullet_state>{
   sprite_url = "./sprites/bullet.png";
   height = 20;
   width = 10;
   gravity = false;
   max_distance = 2000;
   tags = ["bullet"];
-  constructor(x:position, angle:number, id:string = undefined){
-    super(x);
+  constructor(x:position, angle:number,scaling:number, id:string = undefined){
+    super(x,angle,scaling,id);
     if(id != undefined){
       this.id = id;
     }
@@ -54,7 +54,7 @@ export class Bullet extends obj<bullet_state>{
   }
 }
 
-export class Rocket extends Bullet{
+export class Rocket extends bullet{
   sprite_url = "./sprites/folder/rocket.png";
   height = 67;
   width = 16;
@@ -69,7 +69,7 @@ export class Rocket extends Bullet{
     height:16
   }
   constructor(x:position,angle:number){
-    super(x,angle);
+    super(x,angle,1);
     this.state.speed = 15;
     this.state.damage = 20;
   }
@@ -87,7 +87,7 @@ export class Rocket extends Bullet{
      this.particle_timer = 0; 
     }
     let room = g.state.current_room;
-    let collisions = room.check_collisions(this.get_full_collision_box(),["gun","player"]);
+    let collisions = room.check_collisions(this.getFullCollisionBox(),["gun","player"]);
     if(collisions.length > 0){
       for(let collision of collisions){
         let st = collision.state as unknown as plat_state;
@@ -114,6 +114,7 @@ export class Rocket extends Bullet{
         let multiplyer = 1 - distance/300;
         if(multiplyer < 0)
           multiplyer = 0;
+        
         let o_state = collider.state as obj_state;
         let velocities = rotation_length(multiplyer * 100, this.angleTowards(collider));
         o_state.velocity.x += velocities.x;

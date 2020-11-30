@@ -2,6 +2,7 @@ import {game,PAUSED,DEBUG,DEBUG_v, GetScreenDimensions,GetViewportDimensions} fr
 import { collision_box } from "./collision";
 import {obj} from "./object";
 import { Camera } from "./render";
+import {position} from "./state";
 
 interface mousePos{
   x:number,
@@ -38,10 +39,10 @@ export function init_click_handler(game:game<unknown>){
     
   let d:bind[];
   if(DEBUG){
-    if(DEBUG_v.last_clicked.id == "debug_target"){
+    if(DEBUG_v.last_clicked && DEBUG_v.last_clicked.id == "debug_target"){
       d = [...debug_binds];
     }
-    else if(!PAUSED && DEBUG_v.last_clicked.id == "target"){
+    else if(!PAUSED && DEBUG_v.last_clicked && DEBUG_v.last_clicked.id == "target"){
       d= [...all_binds]
     }
     else{
@@ -55,7 +56,7 @@ export function init_click_handler(game:game<unknown>){
       let selected = d[a];
       if(selected.type === btype.mouse && selected.key === "mouse1" && selected.execute == exec_type.once){
         if(selected.obj !== undefined){
-          if(selected.obj.collides_with_box(box)){
+          if(selected.obj.collidesWithBox(box)){
             selected.function();
           }
         }
@@ -73,10 +74,10 @@ window.addEventListener("mousedown", (e) => {
   
   let d:bind[];
   if(DEBUG){
-    if(DEBUG_v.last_clicked.id == "debug_target"){
+    if(DEBUG_v.last_clicked && DEBUG_v.last_clicked.id == "debug_target"){
       d = [...debug_binds];
     }
-    else if(!PAUSED && DEBUG_v.last_clicked.id == "target"){
+    else if(!PAUSED && DEBUG_v.last_clicked &&  DEBUG_v.last_clicked.id == "target"){
       d= [...all_binds]
     }
     else{
@@ -117,10 +118,10 @@ window.addEventListener("mouseup", (e) => {
   
   let d:bind[];
   if(DEBUG){
-    if(DEBUG_v.last_clicked.id == "debug_target"){
+    if(DEBUG_v.last_clicked && DEBUG_v.last_clicked.id == "debug_target"){
       d = [...debug_binds];
     }
-    else if(!PAUSED && DEBUG_v.last_clicked.id == "target"){
+    else if(!PAUSED && DEBUG_v.last_clicked && DEBUG_v.last_clicked.id == "target"){
       d= [...all_binds]
     }
     else{
@@ -175,10 +176,10 @@ window.addEventListener("wheel",(e)=>{
 
   let d:bind[];
   if(DEBUG){
-    if(DEBUG_v.last_clicked.id == "debug_target"){
+    if(DEBUG_v.last_clicked && DEBUG_v.last_clicked.id == "debug_target"){
       d = [...debug_binds];
     }
-    else if(!PAUSED && DEBUG_v.last_clicked.id == "target"){
+    else if(!PAUSED && DEBUG_v.last_clicked && DEBUG_v.last_clicked.id == "target"){
       d= [...all_binds]
     }
     else{
@@ -201,13 +202,14 @@ window.addEventListener("wheel",(e)=>{
 
 window.addEventListener("keydown", (e) => {
   held_keys[e.code] = true;
-  
+  console.log(all_binds);
+  console.log(repeat_binds);
   let d:bind[];
   if(DEBUG){
-    if(DEBUG_v.last_clicked.id == "debug_target"){
+    if(DEBUG_v.last_clicked && DEBUG_v.last_clicked.id == "debug_target"){
       d = [...debug_binds];
     }
-    else if(!PAUSED && DEBUG_v.last_clicked.id == "target"){
+    else if(!PAUSED && DEBUG_v.last_clicked && DEBUG_v.last_clicked.id == "target"){
       d= [...all_binds]
     }
     else{
@@ -241,10 +243,10 @@ window.addEventListener("keyup", (e) => {
   
   let d:bind[];
   if(DEBUG){
-    if(DEBUG_v.last_clicked.id == "debug_target"){
+    if(DEBUG_v.last_clicked && DEBUG_v.last_clicked.id == "debug_target"){
       d = [...debug_binds];
     }
-    else if(!PAUSED && DEBUG_v.last_clicked.id == "target"){
+    else if(!PAUSED && DEBUG_v.last_clicked && DEBUG_v.last_clicked.id == "target"){
       d= [...all_binds]
     }
     else{
@@ -323,17 +325,13 @@ let all_binds:Array<bind> = []
 
 let repeat_binds:Array<repeat_bind> = [];
 
-export function Poll_Mouse(canvas:HTMLCanvasElement,camera:Camera):mousePos{
+export function Poll_Mouse(canvas:HTMLCanvasElement,camera:Camera):position{
   let height = GetViewportDimensions().height;
   let wratio = parseFloat(window.getComputedStyle(canvas).width)/GetViewportDimensions().width;
   let vratio = parseFloat(window.getComputedStyle(canvas).height)/GetViewportDimensions().height;
   return ({
     x: ((x - camera.state.viewport.x)/wratio/camera.state.scaling + camera.state.position.x - camera.state.dimensions.width/camera.state.scaling/2) ,
-    y: ((height - y/vratio)/camera.state.scaling + camera.state.position.y - camera.state.dimensions.height/camera.state.scaling/2 - camera.state.viewport.y),
-    last:{
-      x: (x/wratio/camera.state.scaling + camera.state.position.x),
-      y: ((height - y/vratio)/camera.state.scaling + camera.state.position.y)
-    }
+    y: ((height - y/vratio)/camera.state.scaling + camera.state.position.y - camera.state.dimensions.height/camera.state.scaling/2 - camera.state.viewport.y)
   })
 }
 
@@ -357,7 +355,12 @@ export function Unbind(bind_id:number){
       break;
     }
   }
-
+  for(let a = 0;a < repeat_binds.length; a++){
+    if(repeat_binds[a].bind.id == bind_id){
+      repeat_binds.splice(a,1);
+      break;
+    }
+  }
 }
 
 export enum exec_type{

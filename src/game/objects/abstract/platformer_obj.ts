@@ -1,14 +1,14 @@
-import {composite_obj, gravity_obj} from "../../lib/object";
-import {obj_state,position} from "../../lib/state";
+import {composite_obj, gravity_obj} from "../../../lib/object";
+import {obj_state,position} from "../../../lib/state";
 
 export interface plat_state extends obj_state{
   health:number  
 }
 
-export class platformer_obj<t> extends gravity_obj<t>{
+export abstract class platformer_obj<t> extends gravity_obj<t>{
   enemy = false;
-  constructor(a:position,b:number,c:unknown){
-    super(a,b,c);
+  constructor(position:position,rotation:number,scaling:number,parameters:unknown){
+    super(position,rotation,scaling,parameters);
   }
   statef(a:number){
     let state = this.state as unknown as plat_state;

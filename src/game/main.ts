@@ -39,9 +39,6 @@ export let g = new game(canvas_element.getContext("2d"),{}, async (g:game<{}>)=>
       height:1
     })
   ]
-  let path = "./rooms/Overworld/Overworld.ts";
-  //console.log(await import(path));
   g.loadRoom(new Overworld(g));
-  console.log(JSON.stringify(rooms));
 });
 

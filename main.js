@@ -18,13 +18,7 @@ function compile(){
   })
 }
 
-ipcMain.on('compile-prompt', async (event, arg) => {
-  console.log("compiling");
-  let output = await compile();
-  createWindow();
-  
-  return;
-})
+
 
 let editor;
 let project_path;
@@ -44,7 +38,10 @@ function createWindow () {
       nodeIntegrationInWorker: true // <---  for web workers
     }
   })
-  if(editor) editor.close();
+  if(editor){
+    editor.close();
+    ipcMain.removeAllListeners();
+  };
   editor = mainWindow;
   mainWindow.maximize();
   mainWindow.webContents.openDevTools();
@@ -54,15 +51,41 @@ function createWindow () {
     project_path = dialog.showOpenDialogSync(mainWindow,{
       title:"Open package.json",
       filters:[
-        {name:"JSON",extensions:["json"]}
+        {name:"main.ts",extensions:["ts"]}
       ]
      }
     )
     //ipcRenderer.sendSync('project_path', project_path);
   }
+  ipcMain.on('path-request', (event, arg) => {
+    event.returnValue = project_path;
+  })
+  ipcMain.on('compile-prompt', async (event, arg) => {
+    console.log("compiling");
+    let output = await compile();
+    console.log(output);
+    createWindow();
+    return;
+  })
+  ipcMain.on('object-path-request', (event, arg) => {
+    console.log(arg);
+    console.log("test");
+    
+    let prompt = dialog.showSaveDialogSync(mainWindow,{
+      title:"Choose object name",
+      defaultPath:arg,
+      filters:[
+        {name:"main.ts",extensions:["ts"]}
+      ]
+    });
+    console.log(prompt);
+
+    event.returnValue = prompt; 
+  })
   // Open the DevTools.
   // mainWindow.webContents.openDevTools()
 }
+
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.

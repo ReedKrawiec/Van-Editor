@@ -6,7 +6,8 @@ import {render_collision_box,DEBUG} from "../van";
 import {Bind,control_func, exec_type} from "./controls";
 import {HUD,Text, Text_Node} from "./hud";
 import {audio} from "./audio"
-import {game} from "../van";
+import {game,debug_update_obj_list} from "../van";
+import {prefabs} from "../game/objects/prefabs";
 
 interface position{
   x:number,
@@ -35,6 +36,19 @@ export interface room_i<T>{
   objects:Array<obj<unknown>>
   state:T
 }
+
+export interface object_state_config {
+  type:string,
+  position: position,
+  rotation: number,
+  scaling:number,
+  parameters?: unknown
+}
+
+export interface state_config{
+  objects:object_state_config[]
+}
+
 export class room<T>{
   background_url: string;
   background: HTMLImageElement;
@@ -42,12 +56,33 @@ export class room<T>{
   particles:particles = {};
   particles_arr: Array<obj<unknown>> = [];
   state: T;
+  binds:number[] = [];
   game:game<unknown>;
   hud:HUD;
   audio = new audio();
   text_nodes:Text[] = [];
-  constructor(game:game<unknown>){
+  constructor(game:game<unknown>,config:state_config){
     this.game = game;
+    for(let c of config.objects){
+      this.addItemStateConfig(c)
+    }
+  }
+  exportStateConfig(){
+    let config:state_config = {objects:[]};
+    for(let o of this.objects){
+      console.log(o.constructor.name + " "+ o.parent)
+        if(!o.parent){
+        let st = (<obj<obj_state>>o).state;
+        config.objects.push({
+          type:o.constructor.name,
+          position: st.position,
+          rotation:o.rotation,
+          scaling:o.scaling,
+          parameters:o.params
+        })
+      }
+    }
+    return config;
   }
   load() {
     let _this = this;
@@ -66,10 +101,22 @@ export class room<T>{
       });
     })
   }
+  async addItemStateConfig(config:object_state_config){
+    if(prefabs[config.type]){
+      let new_obj = <obj<unknown>>(new prefabs[config.type](config.position,config.rotation,config.scaling,config.parameters));
+      this.addItems(new_obj.combined_objects());
+    }
+    else{
+      console.log("UNKNOWN TYPE ATTEMPTED TO LOAD: " + config.type)
+    }
+  }
   async addItem(o:obj<unknown>, list = this.objects){
     await o.load();
     o.game = this.game;
     list.push(o);
+    if(DEBUG && list === this.objects){
+      debug_update_obj_list();
+    }
   }
   async addItems(o:obj<unknown>[], list = this.objects){
     for(let ob of o){
@@ -77,6 +124,9 @@ export class room<T>{
     }
     await Promise.all(o.map((a)=>a.load()));
     list.push(...o);
+    if(DEBUG && list === this.objects){
+      debug_update_obj_list();
+    }
   }
   deleteItem(id:string, list = this.objects){
     for(let a = 0;a < list.length;a++){
@@ -85,12 +135,15 @@ export class room<T>{
         a--;
       }
     }
+    if(DEBUG && list === this.objects){
+      debug_update_obj_list();
+    }
   }
   registerParticles(){
 
   }
   bindControl(key:string,x:exec_type,func:control_func,interval:number = 1){
-    Bind(key,func,x,interval); 
+    this.binds.push(Bind(key,func,x,interval)); 
   }
   check_collisions(box:collision_box,exempt?:Array<string>):Array<obj<unknown>>{
     if(DEBUG){
@@ -111,6 +164,12 @@ export class room<T>{
 
   }
   statef(time: number) {
+    for(let particle of this.particles_arr){
+      particle.statef(time);
+    }
+    for(let text_node of this.text_nodes){
+      text_node.statef(time);
+    }
     for (let a = 0; a < this.objects.length; a++) {
       this.objects[a].statef(time);
     }

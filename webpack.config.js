@@ -4,7 +4,7 @@ module.exports = {
   mode: "development",
   devtool: "inline-source-map",
   entry: {
-    main: ["./src/game/main.ts"]
+    main: "./src/game/main.ts"
   },
   output: {
     path: path.resolve(__dirname, './target'),

@@ -5,6 +5,7 @@ import { collision_box } from "./collision";
 import { Unbind, Bind, control_func, exec_type } from "./controls";
 import {audio} from "./audio";
 import {game} from "../van";
+import { Distance } from "./math";
 
 interface obj_i<T> {
   statef: state_func<T>,
@@ -90,7 +91,7 @@ enum RenderType{
   sprite
 }
 
-export class obj<T>{
+export abstract class obj<T>{
   sprite_url = "";
   sprite_sheet: HTMLImageElement;
   state: T;
@@ -110,6 +111,7 @@ export class obj<T>{
   game:game<unknown>;
   parent:composite_obj<unknown>;
   scaling:number = 1;
+  params:unknown = {};
   static default_params:unknown = {};
   getState() {
     return this.state;
@@ -120,12 +122,17 @@ export class obj<T>{
   register_audio() {
 
   }
-  constructor(position:position,rotation=0,params = obj.default_params) {
+  constructor(position:position,rotation:number = 0,scaling:number = 1,params = obj.default_params) {
+    
     this.id = "" + counter;
     this.binds = [];
     counter++;
+    this.params = params;
     this.register_controls();
     this.register_audio();
+    this.rotation = rotation;
+    this.scaling = scaling;
+    this.params = params;
   }
   load() {
     let _this = this;
@@ -140,10 +147,13 @@ export class obj<T>{
       });
     })
   }
+  combined_objects():obj<unknown>[]{
+    return [this];
+  }
   distance(a:obj<unknown>):number{
     let o_st = a.state as unknown as obj_state;
     let st = this.state as unknown as obj_state;
-    return Math.sqrt(Math.pow(st.position.x - o_st.position.x,2) + Math.pow(st.position.y - o_st.position.y,2));
+    return Distance(st.position,o_st.position);
   }
   angleTowards(a: obj<unknown>): number {
     let b = a as obj<obj_state>;
@@ -161,7 +171,7 @@ export class obj<T>{
     }
     return 0;
   }
-  bind_control(key: string, x: exec_type, func: control_func, interval = 1) {
+  bindControl(key: string, x: exec_type, func: control_func, interval = 1) {
     if (key == "mouse1") {
       let b = Bind(key, func, x, interval, this);
       this.binds.push(b);
@@ -170,7 +180,10 @@ export class obj<T>{
       this.binds.push(Bind(key, func, x, interval));
     }
   }
-  register_controls() {
+  register_controls(){
+
+  }
+  statef(time:number){
 
   }
   delete() {
@@ -179,17 +192,19 @@ export class obj<T>{
     }
     this.game.getRoom().deleteItem(this.id);
   }
-  collision_check(a: collision_box): Array<obj<unknown>> {
+  UnbindAll(){
+    for (let a of this.binds) {
+      Unbind(a);
+    }
+  }
+  collisionCheck(a: collision_box): Array<obj<unknown>> {
     if (this.collision) {
       let room = this.game.getRoom();
       return room.check_collisions(a, [this.id]);
     }
     return [];
   }
-  statef(time: number) {
-
-  }
-  get_full_collision_box():collision_box{
+  getFullCollisionBox():collision_box{
     let st = this.state as unknown as obj_state;
     if(this.hitbox){
       return {
@@ -203,12 +218,12 @@ export class obj<T>{
       return {
         x:st.position.x,
         y:st.position.y,
-        width:this.width,
-        height:this.height
+        width:this.width * this.scaling,
+        height:this.height * this.scaling
       }
     }
   }
-  get_all_collision_boxes():collision_box[]{
+  getAllCollisionBoxes():collision_box[]{
     let st = this.state as unknown as obj_state;
     if(this.hitbox){
       return [{
@@ -227,7 +242,7 @@ export class obj<T>{
       }]
     }
   }
-  collides_with_box(a: collision_box): boolean {
+  collidesWithBox(a: collision_box): boolean {
     let st = this.state as unknown as obj_state;
     let hcollides = false, vcollides = false;
     let hbox = this.hitbox;
@@ -240,10 +255,10 @@ export class obj<T>{
       }
     }
     let ob = {
-      left: (st.position.x + hbox.x_offset - hbox.width / 2),
-      right: (st.position.x + hbox.x_offset + hbox.width / 2),
-      top: (st.position.y + hbox.y_offset + hbox.height / 2),
-      bottom: (st.position.y + hbox.y_offset - hbox.height / 2)
+      left: (st.position.x + hbox.x_offset - hbox.width * this.scaling / 2),
+      right: (st.position.x + hbox.x_offset + hbox.width * this.scaling / 2),
+      top: (st.position.y + hbox.y_offset + hbox.height * this.scaling / 2),
+      bottom: (st.position.y + hbox.y_offset - hbox.height * this.scaling / 2)
     }
 
     let box = {
@@ -289,7 +304,14 @@ export class obj<T>{
   }
   renderf(time: number): positioned_sprite[] | positioned_sprite{
     let st = this.state as unknown as obj_state;
-    if (!this.animations.current) {
+    if (Object.keys(this.animations.animations).length == 0 || !this.animations.current) {
+      if(!this.sprite_sheet || !this.height || !this.width){
+        return {
+          sprite:undefined,
+          x:st.position.x,
+          y:st.position.y
+        }
+      }
       let sprite_height = this.height;
       let sprite_width = this.width;
       if (this.height == undefined) {
@@ -325,7 +347,7 @@ interface composite_static{
   obj:obj<unknown>
 }
 
-export class composite_obj<T> extends obj<T>{
+export abstract class composite_obj<T> extends obj<T>{
   objects:obj<unknown>[] = [];
   render = false;
   registered = false;
@@ -335,25 +357,12 @@ export class composite_obj<T> extends obj<T>{
     super(pos);
   }
   load(){
-    //return new Promise((resolve,reject)=>resolve());
     return Promise.all([...this.objects.map((a)=>a.load()),...this.statics.map(a=>a.obj.load())]);
-  }
-  async register_composite(){
-    return new Promise(async (resolve,reject)=>{
-      let length = this.combined_objects().length;
-      for(let a = 0;a < length; a++){
-        let o = this.combined_objects()[a];
-        o.parent = this;
-      }
-      this.game.getRoom().addItems(this.combined_objects());
-      resolve(); 
-    })
-    
   }
   combined_objects():obj<unknown>[]{
     let combined = [...this.objects,...this.statics.map(a=>a.obj)];
     combined.forEach(a=>a.parent = this);
-    return combined;
+    return [...combined,this];
   }
   get_Items_by_Tag(tag:string){
     return this.combined_objects().filter((a)=>a.tags.indexOf(tag) > -1);
@@ -363,10 +372,10 @@ export class composite_obj<T> extends obj<T>{
     a.parent = this;
     this.game.getRoom().addItem(a);
   }
-  get_all_collision_boxes():collision_box[]{
+  getAllCollisionBoxes():collision_box[]{
     let arr:collision_box[] = [];
     for(let obj of [...this.statics.map(a=>a.obj),...this.objects]){
-      let created_box = obj.get_all_collision_boxes();
+      let created_box = obj.getAllCollisionBoxes();
       if(Array.isArray(created_box)){
         arr.push(...created_box);
       }
@@ -385,21 +394,13 @@ export class composite_obj<T> extends obj<T>{
     }
     super.delete();
   }
-  statef(time:number){
-    
-    if(this.game.getRoom() && !this.registered){
-      this.register_composite();
-      this.registered = true;
-    }
-    
-  }
-  collides_with_box(a: collision_box):boolean{
+  collidesWithBox(a: collision_box):boolean{
     for(let obj of this.objects){
-      if(obj.collides_with_box(a))
+      if(obj.collidesWithBox(a))
         return true;
     }
     for(let o of this.statics){
-      if(o.obj.collides_with_box(a))
+      if(o.obj.collidesWithBox(a))
         return true;
     }
     return false;
@@ -412,6 +413,6 @@ export class static_obj {
   sprite: HTMLImageElement;
 }
 
-export class gravity_obj<T> extends obj<T>{
+export abstract class gravity_obj<T> extends obj<T>{
   gravity = true
 }

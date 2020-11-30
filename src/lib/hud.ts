@@ -1,5 +1,5 @@
 import {obj} from "./object";
-import { Goomba } from "../game/objects/goomba";
+import { Goomba } from "../game/objects/Goomba";
 
 interface HudTextGetFunc{
   ():string

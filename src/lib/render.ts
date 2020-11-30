@@ -189,8 +189,8 @@ export const sprite_renderer = (r: renderer_args, s: sprite_args) => {
   let vheight = r.camera.state.dimensions.height / r.camera.state.scaling;
   let final_x = ((s.x - camera.state.position.x + camera.state.dimensions.width * (1/r.camera.state.scaling) / 2 - s.sprite.sprite_width * s.scale / 2) * r.camera.state.scaling);
   let final_y = ((vheight - s.y - camera.state.dimensions.height * (1/r.camera.state.scaling) / 2 - s.sprite.sprite_height * s.scale / 2 + camera.state.position.y) * r.camera.state.scaling);
-  let height = s.sprite.sprite_height * s.scale * r.camera.state.scaling;
-  let width = s.sprite.sprite_width * s.scale * r.camera.state.scaling;
+  let height = s.sprite.sprite_height * r.camera.state.scaling;
+  let width = s.sprite.sprite_width * r.camera.state.scaling;
   r.context.save();
   r.context.globalAlpha = s.sprite.opacity;
   r.context.translate(final_x  + (width) / 2, final_y + height / 2)
@@ -200,27 +200,28 @@ export const sprite_renderer = (r: renderer_args, s: sprite_args) => {
     s.sprite.sprite_sheet,
     s.sprite.left,
     s.sprite.top,
-    s.sprite.sprite_width * s.scale,
-    s.sprite.sprite_height * s.scale,
+    s.sprite.sprite_width,
+    s.sprite.sprite_height,
     -(width) / 2,
     -height / 2,
-    width,
-    height
+    width * s.scale,
+    height * s.scale
   )
   r.context.restore();
 }
 
-export const stroked_rect_renderer = (context: CanvasRenderingContext2D, rect: rectangle, x: number, y: number, color: string, camera: Camera) => {
+export const stroked_rect_renderer = (context: CanvasRenderingContext2D, rect: rectangle, x: number, y: number, color: string, lineWidth:number, camera: Camera) => {
   let vheight = camera.state.dimensions.height / camera.state.scaling;
   let final_x = ((x - camera.state.position.x + camera.state.dimensions.width * (1/camera.state.scaling) / 2 - rect.width / 2) * camera.state.scaling);
   let final_y = ((vheight - y - rect.height / 2 - camera.state.dimensions.height * (1/camera.state.scaling) / 2 + camera.state.position.y) * camera.state.scaling);
   let height = rect.height * camera.state.scaling;
   let width = rect.width * camera.state.scaling;
   context.strokeStyle = color;
+  context.lineWidth = lineWidth * camera.state.scaling;
   context.strokeRect(final_x, final_y, width, height);
 }
 
-export const rect_renderer = (context: CanvasRenderingContext2D, rect: rectangle, x: number, y: number, color: string, camera: Camera) => {
+export const rect_renderer = (context: CanvasRenderingContext2D, rect: rectangle, x: number, y: number, color: string, lineWidth:number, camera: Camera) => {
   let vheight = camera.state.dimensions.height / camera.state.scaling;
   let final_x = ((x - camera.state.position.x + camera.state.dimensions.width * (1/camera.state.scaling) / 2 - rect.width / 2) * camera.state.scaling);
   let final_y = ((vheight - y - rect.height / 2 - camera.state.dimensions.height * (1/camera.state.scaling) / 2 + camera.state.position.y) * camera.state.scaling);

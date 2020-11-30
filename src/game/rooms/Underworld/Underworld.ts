@@ -80,8 +80,8 @@ class Height_HUD extends HUD{
   }
 }
 
-export class Overworld extends room<overworld_i>{
-  background_url = "./sprites/imD41l.jpg";
+export class Underworld extends room<overworld_i>{
+  background_url = "./sprites/orig_719275.jpg";
   objects:gravity_obj<unknown>[];
   constructor(game:game<unknown>) {
     super(game,json as unknown as state_config);

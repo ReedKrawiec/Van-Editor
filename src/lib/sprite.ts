@@ -36,7 +36,7 @@ export class Particle extends obj<Particle_i>{
   max_lifetime:number;
   selected_sprite:sprite;
   constructor(part:particle_entry,pos:position,lifetime:number,random_range:number){
-    super();
+    super(pos);
     this.state = {
       lifetime:0,
       position:{

@@ -17,13 +17,13 @@ enum direction{
 }
 
 export function check_all_objects(c: collision_box,objs:Array<obj<unknown>>,exemption:string[] = []):Array<obj<unknown>>{
-  return objs.filter((a)=>(!exemption.some((b)=>a.tags.indexOf(b) !== -1) && a.collides_with_box(c)));
+  return objs.filter((a)=>(!exemption.some((b)=>a.tags.indexOf(b) !== -1) && a.collidesWithBox(c)));
 }
 
 export function check_all_collisions(c: collision_box,objs:Array<obj<unknown>>,exemption:string[] = []):Array<obj<unknown>>{
   let matched = [];
   for (let a of objs) {
-    if (!exemption.some((b)=>a.tags.indexOf(b) !== -1) && a.collision && a.collides_with_box(c)) {
+    if (!exemption.some((b)=>a.tags.indexOf(b) !== -1) && a.collision && a.collidesWithBox(c)) {
       matched.push(a);
     }
   }
@@ -32,7 +32,7 @@ export function check_all_collisions(c: collision_box,objs:Array<obj<unknown>>,e
 //Checks up to the first collision
 export function check_collisions(c: collision_box, objs: Array<obj<unknown>>, exemption:string) {
   for (let a of objs) {
-    if (a.id !== exemption && a.collision && a.collides_with_box(c)) {
+    if (a.id !== exemption && a.collision && a.collidesWithBox(c)) {
       return a;
     }
   }
@@ -49,17 +49,19 @@ function velocity_max(velocity:number,box:collision_box,objs:Array<obj<unknown>>
     let origin = getId(objs,exemption);
     let orig_st = origin.state as obj_state;
     let collider_st = collider.state as obj_state;
+    let orig_col = origin.getFullCollisionBox();
+    let collider_col = collider.getFullCollisionBox();
     if(dir == direction.left){
-      return (orig_st.position.x - origin.width/2) - (collider_st.position.x + collider.width/2);
+      return (orig_col.x - orig_col.width/2) - (collider_col.x + collider_col.width/2);
     }
     else if(dir == direction.right){
-      return (collider_st.position.x - collider.width/2) - (orig_st.position.x + origin.width/2);
+      return (collider_col.x - collider_col.width/2) - (orig_col.x + orig_col.width/2);
     }
     else if(dir == direction.down){
-      return (orig_st.position.y - origin.height/2) - (collider_st.position.y + collider.height/2);
+      return (orig_col.y - orig_col.height/2) - (collider_col.y + collider_col.height/2);
     }
     else if(dir == direction.up){
-      return (collider_st.position.y - collider.height/2) - (orig_st.position.y + origin.height/2);
+      return (collider_col.y - collider_col.height/2) - (orig_col.y + orig_col.height/2);
     }
   }
 }
@@ -75,12 +77,13 @@ export function velocity_collision_check(object:obj<unknown>,list:Array<obj<unkn
     (<obj_state>ob.state).position.y += (<obj_state>ob.state).velocity.y;
     return;
   }
+  let col_box = ob.getFullCollisionBox();
   if (x_vel > 0) {
     let box = {
-      x: st.position.x + ob.width/2 + x_vel/2,
-      y: st.position.y,
+      x: col_box.x + col_box.width/2 + x_vel/2,
+      y: col_box.y,
       width: x_vel,
-      height: ob.height
+      height: col_box.height
     };
     let vel = velocity_max(st.velocity.x,box,list,ob.id,direction.right);
     if(vel > 0){
@@ -92,10 +95,10 @@ export function velocity_collision_check(object:obj<unknown>,list:Array<obj<unkn
   }
   else if (x_vel < 0) {
     let box = {
-      x: x_vel/2 + st.position.x - ob.width/2,
-      y: st.position.y,
+      x: x_vel/2 + col_box.x - col_box.width/2,
+      y: col_box.y,
       width: -1 * x_vel,
-      height: ob.height
+      height: col_box.height
     }
     let vel = velocity_max(st.velocity.x,box,list,ob.id,direction.left);
     if(vel < 0){
@@ -107,9 +110,9 @@ export function velocity_collision_check(object:obj<unknown>,list:Array<obj<unkn
   }
   if (y_vel > 0) {
     let box = {
-      x: st.position.x,
-      y: st.position.y + ob.height/2 + y_vel/2,
-      width: ob.width,
+      x: col_box.x,
+      y: col_box.y + col_box.height/2 + y_vel/2,
+      width: col_box.width,
       height: y_vel
     }
     let vel = velocity_max(st.velocity.y,box,list,ob.id,direction.up);
@@ -122,9 +125,9 @@ export function velocity_collision_check(object:obj<unknown>,list:Array<obj<unkn
   }
   else if (y_vel < 0) {
     let box = {
-      x: st.position.x,
-      y: y_vel/2 + st.position.y - ob.height/2,
-      width: ob.width,
+      x: col_box.x,
+      y: y_vel/2 + col_box.y - col_box.height/2,
+      width: col_box.width,
       height: -1 * y_vel
     }
     let vel = velocity_max(st.velocity.y,box,list,ob.id,direction.down);
