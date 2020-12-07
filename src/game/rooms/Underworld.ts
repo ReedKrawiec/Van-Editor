@@ -1,21 +1,22 @@
-import { room, apply_gravity,object_state_config, state_config } from "../../../lib/room";
-import { Goomba } from "../../objects/Goomba";
-import { ControlledPlayer } from "../../objects/ControlledPlayer";
-import { Gun } from "../../objects/Gun";
-import { Player } from "../../objects/Player";
-import { Cursor } from "../../objects/Cursor";
-import { box } from "../../objects/box";
-import { VertBox } from "../../objects/VertBox";
-import { velocity_collision_check } from "../../../lib/collision";
-import { gravity_obj, rotation_length } from "../../../lib/object";
-import { Poll_Mouse, exec_type } from "../../../lib/controls";
-import { HUD, Text } from "../../../lib/hud";
-import { DEBUG, game, GetViewportDimensions, setDebug } from "../../../van";
-import {bullet, Rocket} from "../../objects/bullet";
-import {g} from "../../main";
-import * as json from "./info.json";
+import { room, applyGravity,object_state_config, state_config } from "../../lib/room";
+import { Goomba } from "../objects/Goomba";
+import { ControlledPlayer } from "../objects/ControlledPlayer";
+import { Gun } from "../objects/Gun";
+import { Player } from "../objects/Player";
+import { Cursor } from "../objects/Cursor";
+import { box } from "../objects/box";
+import { VertBox } from "../objects/VertBox";
+import { velocityCollisionCheck } from "../../lib/collision";
+import { gravity_obj, rotation_length } from "../../lib/object";
+import { Poll_Mouse, exec_type } from "../../lib/controls";
+import { HUD, Text } from "../../lib/hud";
+import { DEBUG, game, GetViewportDimensions,viewport, setDebug } from "../../van";
+import {bullet, Rocket} from "../objects/bullet";
+import {Camera} from "../../lib/render";
+import {g} from "../main";
+import * as json from "./Underworld.json";
 interface overworld_i {
-  player: gravity_obj<unknown>,
+  player: gravity_obj,
   paused: boolean,
   locked_bullet:bullet
 }
@@ -82,7 +83,7 @@ class Height_HUD extends HUD{
 
 export class Underworld extends room<overworld_i>{
   background_url = "./sprites/orig_719275.jpg";
-  objects:gravity_obj<unknown>[];
+  objects:gravity_obj[];
   constructor(game:game<unknown>) {
     super(game,json as unknown as state_config);
     this.state = {
@@ -90,6 +91,39 @@ export class Underworld extends room<overworld_i>{
       paused: false,
       locked_bullet:null
     };
+    game.state.cameras = [
+      new Camera({
+        x:0,
+        y:0,
+        dimensions:{
+          height:viewport.height,
+          width:viewport.width * 4/5
+        },
+        scaling:0.5,
+        debug:false
+      }
+      ,{
+        x:1,
+        y:0,
+        width:0.8,
+        height:1
+      }),
+      new Camera({
+        x:0,
+        y:0,
+        dimensions:{
+          width:viewport.width/5,
+          height:viewport.height
+        },
+        scaling:0.2,
+        debug:false
+      },{
+        x:viewport.width * 4/5,
+        y:0,
+        width:0.2,
+        height:1
+      })
+    ]
     /*
     for(let a = 0;a<10;a++){
       this.objects.push(new VertBox({x:320,y:250 + a * 500},0,1));
@@ -107,7 +141,7 @@ export class Underworld extends room<overworld_i>{
     game.state.cameras[0].hud = new Overworld_HUD();
     game.state.cameras[1].hud = new Height_HUD();
   }
-  register_controls() {
+  registerControls() {
     this.bindControl("Escape", exec_type.once, () => {
       this.game.state.cameras[0].state.debug = !this.game.state.cameras[0].state.debug;
       let player = this.getObj("player") as Goomba;
@@ -125,7 +159,12 @@ export class Underworld extends room<overworld_i>{
         }
         let bullets = [];
         for(let a = 0;a < 1;a ++){
-          bullets.push(new Rocket({x:position.x,y:position.y},gun.state.rotation));
+          bullets.push(new Rocket({
+            position:{x:position.x,y:position.y},
+            velocity:{x:0,y:0},
+            rotation:gun.state.rotation,
+            scaling:{width:1,height:1}
+          },{}));
         }
         
         if(this.state.locked_bullet == null)
@@ -149,8 +188,7 @@ export class Underworld extends room<overworld_i>{
   statef(time: number) {
     if (!this.state.paused) {
       for (let a = 0; a < this.objects.length; a++) {
-        apply_gravity(this.objects[a], -1, -15);
-        velocity_collision_check(this.objects[a], this.objects);
+        applyGravity(this.objects[a], -1, -15);
       }
       let player = this.getObjByTag("player")[0] as Goomba;
       let target = this.getObjByTag("dummy")[0] as Goomba;

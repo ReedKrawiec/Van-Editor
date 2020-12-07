@@ -1,6 +1,6 @@
 import { obj } from "./object";
 import { obj_state, position, dimensions} from "./state";
-import {getRandInt} from "./rand";
+import {getRandInt} from "./math";
 import {particle_entry} from "./room";
 
 export interface sprite{
@@ -18,41 +18,26 @@ export interface positioned_sprite{
   y:number
 }
 
-interface Particle_i{
+interface Particle_i extends obj_state{
   lifetime:number;
-  position:{
-    x:number,
-    y:number
-  },
-  velocity:{
-    x:number,
-    y:number
-  }
 }
 
-export class Particle extends obj<Particle_i>{
+export class Particle extends obj{
   collision = false;
   random_range:number;
   max_lifetime:number;
+  state:Particle_i;
   selected_sprite:sprite;
-  constructor(part:particle_entry,pos:position,lifetime:number,random_range:number){
-    super(pos);
-    this.state = {
-      lifetime:0,
-      position:{
-        x:pos.x + getRandInt(-random_range,random_range),
-        y:pos.y + getRandInt(-random_range,random_range)
-      },
-      velocity:{
-        x:0,
-        y:0
-      }
-    };
+  constructor(part:particle_entry,state:obj_state,lifetime:number,random_range:number){
+    super(state);
+    this.state.lifetime = 0;
     this.sprite_url = part.sprite;
     this.height = part.height;
     this.width = part.width;
     this.max_lifetime = lifetime;
     this.random_range = random_range;
+    this.state.position.x += getRandInt(-random_range/2,random_range/2);
+    this.state.position.y += getRandInt(-random_range/2,random_range/2);
   }
   delete(){
     let room = this.game.getRoom();

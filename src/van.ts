@@ -1,6 +1,6 @@
 export let DEBUG = true;
 export let PAUSED = true;
-import {obj} from "./lib/object";
+import {obj,params} from "./lib/object";
 import {obj_state, position} from "./lib/state";
 import {room} from "./lib/room";
 import {positioned_sprite, sprite} from "./lib/sprite";
@@ -10,6 +10,7 @@ import {HUD} from "./lib/hud";
 import {ExecuteRepeatBinds,debug_binds,btype,exec_type, Poll_Mouse, Bind, held_keys, Unbind} from "./lib/controls";
 import {Distance} from "./lib/math";
 import {init_click_handler} from "./lib/controls";
+import {debug_update_room_list,debug_update_obj_list,debug_statef,debug_setup,debug_update_prefabs,debug_update_properties_element, Debug_hud} from "./lib/debug";
 import {rooms as room_list} from "./game/rooms/rooms";
 let { ipcRenderer} = window.require("electron");
 const path = window.require("path");
@@ -27,9 +28,7 @@ let vwidth = canvas_element.width;
 let vheight = canvas_element.height;
 
 import {g} from "./game/main";
-import {prefabs} from "./game/objects/prefabs";
-import { debug } from "console";
-import { debug_setup } from "./lib/debug";
+
 
 //How often the game logic loop should run, in milliseconds
 let logic_loop_interval:number = 1000/60;  
@@ -86,17 +85,26 @@ export let deep = (a:any) =>{
   return JSON.parse(JSON.stringify(a));
 }
 
-interface debug_vars{
+interface debug_action{
+  property:string,
+  old:string,
+  new:string,
+  element:obj
+}
+
+export interface debug_vars{
   target:HTMLCanvasElement,
   camera:Camera,
   last_clicked:HTMLElement,
-  selected_element_initial_scaling:number,
-  selected_element:obj<obj_state>,
+  selected_element_initial_scaling:dimensions,
+  selected_element:obj,
   selected_element_offset:position,
-  rotation_element:obj<obj_state>,
-  selected_properties_element:obj<obj_state>,
+  rotation_element:obj,
+  selected_properties_element:obj,
   middle_position:position,
-  click_position:position
+  click_position:position,
+  actions_stack:debug_action[],
+  current_action:debug_action
 }
 
 export let DEBUG_v:debug_vars;
@@ -110,198 +118,6 @@ interface game_state<T>{
   game:T
 }
 
-export function debug_update_obj_list(){
-  let list = document.getElementById("objects_list");
-  list.textContent = '';
-  if(g.getRoom()){
-    for(let obj of g.getRoom().objects){
-      let para = document.createElement("p");
-      para.appendChild(document.createTextNode(obj.constructor.name));
-      para.classList.add("object_list_item");
-      para.addEventListener("click",(e)=>{
-        if(DEBUG_v.selected_properties_element == <obj<obj_state>>obj){
-          DEBUG_v.camera.state.position = Object.assign({},(<obj<obj_state>>obj).state.position)
-        }
-        else{
-          DEBUG_v.selected_properties_element = <obj<obj_state>>obj;
-          debug_update_properties_element()
-        }
-      })
-      list.appendChild(para);
-    }
-  }
-}
-
-export function debug_update_room_list(){
-  let list = document.getElementById("room_list");
-  list.textContent = '';
-  for(let room_name of Object.keys(room_list)){
-    let para = document.createElement("p");
-    para.appendChild(document.createTextNode(room_name));
-    para.classList.add("room_list_item");
-    para.addEventListener("click",(e)=>{
-      g.loadRoomString(room_name);
-    })
-    list.appendChild(para);
-  }
-}
-
-interface properties_element{
-  pos_x:HTMLInputElement,
-  pos_y:HTMLInputElement,
-  vel_x:HTMLInputElement,
-  vel_y:HTMLInputElement,
-  rot:HTMLInputElement,
-  scaling:HTMLInputElement
-}
-let properties_elements:properties_element=undefined;
-if(DEBUG){
-  properties_elements = {
-    pos_x:(<HTMLInputElement>document.getElementById("pos_x")),
-    pos_y:(<HTMLInputElement>document.getElementById("pos_y")),
-    vel_x:(<HTMLInputElement>document.getElementById("vel_x")),
-    vel_y:(<HTMLInputElement>document.getElementById("vel_y")),
-    rot:(<HTMLInputElement>document.getElementById("rot")),
-    scaling:(<HTMLInputElement>document.getElementById("scaling")),
-  }
-
-  let inputs = document.getElementsByTagName("input");
-  for(let a = 0;a<inputs.length;a++){
-    inputs[a].addEventListener("click",(e)=>{
-      (<HTMLElement>inputs[a]).focus();
-    })
-    
-  }
-  let focused;
-  let debug_target = document.getElementById("debug_target")
-  debug_target.addEventListener("click",(e)=>{
-    for(let a = 0;a<inputs.length;a++){
-      inputs[a].blur();     
-    }
-  })
-  let target = document.getElementById("target");
-  target.addEventListener("click",(e)=>{
-    for(let a = 0;a<inputs.length;a++){
-      inputs[a].blur();  
-    }
-  })
-  properties_elements.pos_x.addEventListener("input",(e)=>{
-    let ele = DEBUG_v.selected_properties_element;
-    ele.state.position.x = parseFloat(properties_elements.pos_x.value) || 0;
-  })
-  properties_elements.pos_y.addEventListener("input",(e)=>{
-    let ele = DEBUG_v.selected_properties_element;
-    ele.state.position.y = parseFloat(properties_elements.pos_y.value) || 0;
-  })
-  properties_elements.vel_x.addEventListener("input",(e)=>{
-    let ele = DEBUG_v.selected_properties_element;
-    ele.state.velocity.x = parseFloat(properties_elements.vel_x.value) || 0;
-  })
-  properties_elements.vel_y.addEventListener("input",(e)=>{
-    let ele = DEBUG_v.selected_properties_element;
-    ele.state.velocity.y = parseFloat(properties_elements.vel_y.value) || 0;
-  })
-  properties_elements.rot.addEventListener("input",(e)=>{
-    let ele = DEBUG_v.selected_properties_element;
-    ele.rotation = parseFloat(properties_elements.rot.value) || 0;
-  })
-  properties_elements.scaling.addEventListener("input",(e)=>{
-    let ele = DEBUG_v.selected_properties_element;
-    ele.scaling = parseFloat(properties_elements.scaling.value) || 0;
-  })
-  document.getElementById("delete_element").addEventListener("click",(e)=>{
-    let ele = DEBUG_v.selected_properties_element;
-    ele.delete();
-  })
-}
-
-export async function debug_update_prefabs(){
-  let pres = Object.keys(prefabs).map(async (o: string) => {
-    let a = <obj<obj_state>>(new prefabs[o]({ x: 0, y: 0 }, 0, 1));
-    await a.load();
-    let objs = a.combined_objects();
-    for(let obj of objs){
-      obj.UnbindAll();
-    }
-    let filtered = objs.filter((a) => a.render);
-    return {
-      prefab:prefabs[o],
-      name:a.constructor.name,
-      rendered:filtered.map((o) => {
-        return {
-          name: o.constructor.name,
-          render: o.renderf(0)
-        }
-      })
-    };
-    
-  })
-  let a = await Promise.all(pres);
-  let target = document.getElementById("prefab_target");
-  target.textContent = '';
-  for(let prefab of a){
-    
-    let div = document.createElement("div");
-    let para = document.createElement("p");
-    para.appendChild(document.createTextNode(prefab.name));
-    div.appendChild(para);
-    if(Array.isArray(prefab.rendered[0].render)){
-    }
-    else{
-      div.append(prefab.rendered[0].render.sprite.sprite_sheet);
-    }
-    div.classList.add("prefab_box");
-    div.addEventListener("mousedown",async ()=>{
-      let obj =  <obj<obj_state>>(new prefab.prefab(Object.assign({},DEBUG_v.camera.state.position), 0, 1));
-      await g.state.current_room.addItems(obj.combined_objects());
-    });
-    target.append(div);
-  }
-}
-
-export function debug_update_properties_element(){
-  if(DEBUG_v.selected_properties_element){
-    let ele = DEBUG_v.selected_properties_element;
-    document.getElementById("obj_name").innerHTML = ele.constructor.name;
-    properties_elements.pos_x.value = ""+ele.state.position.x.toFixed(2);
-    properties_elements.pos_y.value = ""+ele.state.position.y.toFixed(2);
-    properties_elements.vel_x.value = ""+ele.state.velocity.x.toFixed(2);
-    properties_elements.vel_y.value = ""+ele.state.velocity.y.toFixed(2);
-    properties_elements.rot.value = ""+ele.rotation.toFixed(2);
-    properties_elements.scaling.value = ""+ele.scaling.toFixed(2);
-  }
-  
-}
-
-function debug_statef(t:number){
-  let mouse = Poll_Mouse(DEBUG_v.target,DEBUG_v.camera);
-  if(!PAUSED){
-    debug_update_properties_element();
-  }
-  if(DEBUG_v.selected_element){
-    if(PAUSED && held_keys["ControlLeft"]){
-      let initial_distance = Distance(DEBUG_v.click_position,DEBUG_v.selected_element.state.position);
-      let current_distance = Distance(mouse,DEBUG_v.selected_element.state.position);
-      DEBUG_v.selected_element.scaling = DEBUG_v.selected_element_initial_scaling + (current_distance - initial_distance)/DEBUG_v.selected_element.width;
-      
-    }
-    else{
-      let st = DEBUG_v.selected_element.state as unknown as obj_state;
-      st.position.x = mouse.x - DEBUG_v.selected_element_offset.x,
-      st.position.y = mouse.y - DEBUG_v.selected_element_offset.y
-    }
-  }
-  if(PAUSED && DEBUG_v.rotation_element){
-    DEBUG_v.rotation_element.rotation = DEBUG_v.rotation_element.angleTowardsPoint(mouse);
-  }
-  if(DEBUG_v.middle_position){
-   let diff_y = mouse.y - DEBUG_v.middle_position.y;
-   let diff_x = mouse.x - DEBUG_v.middle_position.x;
-    DEBUG_v.camera.state.position.x = DEBUG_v.camera.state.position.x + -1 * diff_x;
-    DEBUG_v.camera.state.position.y = DEBUG_v.camera.state.position.y + -1 * diff_y;
-  }
-  
-}
 
 export let rooms:any[] = [];
 export let objects:any[];
@@ -311,7 +127,7 @@ export class game<T>{
   context:CanvasRenderingContext2D;
   offscreen_canvas:HTMLCanvasElement;
   offscreen_context:CanvasRenderingContext2D;
-  prototypes:Array<obj<unknown>> = [];
+  prototypes:Array<obj> = [];
   rooms:Array<any> = [];
   isRendering = false;
   constructor(ctx:CanvasRenderingContext2D,init_state:T,init:any){
@@ -354,8 +170,12 @@ export class game<T>{
         middle_position:undefined,
         click_position:undefined,
         selected_properties_element:undefined,
-        selected_element_initial_scaling:0
+        selected_element_initial_scaling:{width:1,height:1},
+        actions_stack:[],
+        current_action:undefined
       }
+      
+      DEBUG_v.camera.hud = new Debug_hud();
       debug_binds.push({
         key:"mouse0down",
         type:btype.mouse,
@@ -367,17 +187,41 @@ export class game<T>{
           else{
             let mouse = Poll_Mouse(DEBUG_v.target,DEBUG_v.camera);
             DEBUG_v.click_position = mouse;
-            let clicked = this.getRoom().check_objects({
+            let alL_clicked = this.getRoom().checkObjects({
               x:mouse.x,
               y:mouse.y,
               height:1,
               width:1
-            })[0]
+            })
+            let clicked;
+            let filtered = alL_clicked.filter((ele)=>ele == DEBUG_v.selected_properties_element)
+            if(filtered.length > 0){
+              clicked = filtered[0]
+            }
+            else{
+              clicked = alL_clicked[0];
+            }
             if(clicked){
-              DEBUG_v.selected_properties_element= <obj<obj_state>>clicked;
+              if(held_keys["ControlLeft"]){
+                DEBUG_v.current_action = {
+                  element:clicked,
+                  property:"scaling",
+                  old:JSON.stringify(clicked.scaling),
+                  new:undefined
+               }
+              }
+              else{
+                DEBUG_v.current_action = {
+                  element:clicked,
+                  property:"position",
+                  old:JSON.stringify((<obj_state>clicked.state).position),
+                  new:undefined
+                }
+              }
+              DEBUG_v.selected_properties_element= clicked;
               debug_update_properties_element()
-              DEBUG_v.selected_element = <obj<obj_state>>clicked;
-              DEBUG_v.selected_element_initial_scaling = clicked.scaling;
+              DEBUG_v.selected_element = clicked;
+              DEBUG_v.selected_element_initial_scaling = clicked.state.scaling;
               DEBUG_v.selected_element_offset = {
                 x: mouse.x - (<obj_state>clicked.state).position.x,
                 y: mouse.y - (<obj_state>clicked.state).position.y
@@ -414,6 +258,17 @@ export class game<T>{
         type:btype.mouse,
         id:1,
         function:()=>{
+          if(DEBUG_v.selected_element){
+            if(DEBUG_v.current_action.property == "scaling"){
+              DEBUG_v.current_action.new = JSON.stringify(DEBUG_v.selected_element.state.scaling)
+            }
+            else if(DEBUG_v.current_action.property == "position"){
+              DEBUG_v.current_action.new = JSON.stringify((<obj_state>DEBUG_v.selected_element.state).position)
+            }
+            
+            DEBUG_v.actions_stack.push(DEBUG_v.current_action);
+          }
+          
           DEBUG_v.selected_element = undefined;
           debug_update_properties_element()
         },
@@ -430,14 +285,20 @@ export class game<T>{
           }
           else{
             let mouse = Poll_Mouse(DEBUG_v.target,DEBUG_v.camera);
-            let clicked = this.getRoom().check_objects({
+            let clicked = this.getRoom().checkObjects({
               x:mouse.x,
               y:mouse.y,
               height:1,
               width:1
             })[0]
             if(clicked){
-              DEBUG_v.rotation_element = <obj<obj_state>>clicked;
+              DEBUG_v.rotation_element = clicked;
+              DEBUG_v.current_action = {
+                element:DEBUG_v.rotation_element,
+                property:"rotation",
+                old:JSON.stringify(DEBUG_v.rotation_element.rotation),
+                new:undefined
+              }
             }
           }
         },
@@ -449,6 +310,8 @@ export class game<T>{
         type:btype.mouse,
         id:4,
         function:()=>{
+          DEBUG_v.current_action.new = JSON.stringify(DEBUG_v.rotation_element.state.rotation)
+          DEBUG_v.actions_stack.push(DEBUG_v.current_action);
           DEBUG_v.rotation_element = undefined;
         },
         execute:exec_type.once,
@@ -484,7 +347,7 @@ export class game<T>{
         let ctrl_held = held_keys["ControlLeft"];
         if(ctrl_held && PAUSED){
           let name = this.getRoom().constructor.name;
-          let a = path.join(`${project_path}`,`../rooms/${name}/info.json`);
+          let a = path.join(`${project_path}`,`../rooms/${name}.json`);
           try {
             fs.writeFileSync(a,JSON.stringify(this.getRoom().exportStateConfig()));
           } catch(e){
@@ -500,6 +363,22 @@ export class game<T>{
       let scroll_down = ()=>{
         if(DEBUG_v.last_clicked.id == "debug_target" && DEBUG_v.camera.state.scaling > 0.05)
           DEBUG_v.camera.state.scaling = DEBUG_v.camera.state.scaling - 0.05;
+      }
+      let undo_func = ()=>{
+        if(held_keys["ControlLeft"]){
+          let curr:debug_action = DEBUG_v.actions_stack.pop();
+          if(curr){
+            if(curr.property == "position"){
+              curr.element.state.position = JSON.parse(curr.old);
+            }
+            else if(curr.property === "rotation"){
+              curr.element.rotation = JSON.parse(curr.old);
+            }
+            else if(curr.property === "scaling"){
+              curr.element.scaling = JSON.parse(curr.old);
+            }
+          }
+        }
       }
       debug_binds.push({
         key:"KeyA",
@@ -550,6 +429,13 @@ export class game<T>{
         function:save_func,
         execute:exec_type.once
       })
+      debug_binds.push({
+        key:"KeyZ",
+        type:btype.keyboard,
+        id:Bind("KeyZ",undo_func,exec_type.once,1),
+        function:undo_func,
+        execute:exec_type.once
+      })
       window.addEventListener("click",(e)=>{
         if(e.target instanceof HTMLElement){
           DEBUG_v.last_clicked = e.target;
@@ -590,8 +476,8 @@ export class game<T>{
         width:camera.state.dimensions.width * (1/camera.state.scaling),
         height:camera.state.dimensions.height * (1/camera.state.scaling)
       };
-      let particle_collides = this.state.current_room.check_objects(camera_box,[],this.state.current_room.particles_arr);
-      let camera_colliders = [...this.state.current_room.check_objects(camera_box),...particle_collides];
+      let particle_collides = this.state.current_room.checkObjects(camera_box,[],this.state.current_room.particles_arr);
+      let camera_colliders = [...this.state.current_room.checkObjects(camera_box),...particle_collides];
       let render_args = {
         context:this.offscreen_context,
         camera:camera,
@@ -601,19 +487,22 @@ export class game<T>{
         x: 0,
         y: 0,
         rotation: 0,
-        scale:1
+        scale:{
+          width:1,
+          height:1
+        }
       });
       let hitboxes:collision_box[] = [];
-      for (let a of camera_colliders.filter((b) => b.render)) {
-        let rendered = a.render_track(t);
+      for (let a of camera_colliders.filter((b) => b.render).sort((a,b)=>(a.layer - b.layer))) {
+        let rendered = a.renderTrack(t);
         if (Array.isArray(rendered)) {
           for (let positioned_sprite of rendered)
             sprite_renderer(render_args, {
               sprite:positioned_sprite.sprite,
               x: positioned_sprite.x,
               y: positioned_sprite.y,
-              rotation: a.rotation,
-              scale:a.scaling
+              rotation: a.state.rotation,
+              scale:a.state.scaling
             });
         }
         else {
@@ -622,8 +511,8 @@ export class game<T>{
             sprite: positioned_sprite.sprite,
             x: positioned_sprite.x,
             y: positioned_sprite.y,
-            rotation: a.rotation,
-            scale:a.scaling
+            rotation: a.state.rotation,
+            scale:a.state.scaling
           });
         }
         if(DEBUG && a.collision){
@@ -641,15 +530,15 @@ export class game<T>{
         let graphics = camera.hud.graphic_elements;
         let text_elements = camera.hud.text_elements;
         for(let a of graphics){
-          let rendered = a.render_track(t);
+          let rendered = a.renderTrack(t);
           if(a.render){
             for(let positioned_sprite of rendered){
               sprite_renderer(render_args,{
                 sprite:positioned_sprite.sprite,
                 x:positioned_sprite.x,
                 y:positioned_sprite.y,
-                rotation:a.rotation,
-                scale:a.scaling
+                rotation:a.state.rotation,
+                scale:a.state.scaling
               });
             }
           }
@@ -749,7 +638,7 @@ export class game<T>{
     }
     
     let new_room = await x.load();
-    x.register_controls();
+    x.registerControls();
     x.registerParticles();
     if(this.state.logic != undefined){
       clearInterval(this.state.logic);
@@ -758,9 +647,10 @@ export class game<T>{
     if (DEBUG) {
       debug_update_room_list();
       debug_update_prefabs();
+      debug_update_obj_list();
     }
     this.state.current_room = x;
-    debug_update_obj_list();
+
     if(!this.isRendering){
       this.render(0);
       this.isRendering = true;

@@ -9,34 +9,30 @@ import { g } from "../main";
     }
     
     interface Door_parameters{
-      location:string
+      location:string,
+      test:boolean,
+      yep:number
     }
     
-    export class Door extends obj<Door_state>{
+    export class Door extends obj{
       sprite_url = "./sprites/target.png";
       height = 100;
       width = 100;
       tags:Array<string> = [];
       collision = false;
       render = true;
-      rotation = 0;
-      scaling = 1;
+      state:Door_state;
       params:Door_parameters;
       static default_params:Door_parameters = {
-        location:"Underworld"
+        location:"Underworld",
+        test:true,
+        yep:15
       }
-      constructor(position:position,rotation:number,scaling:number,params:Door_parameters = Door.default_params){
-        super(position,rotation,scaling,params);
-        this.state = {
-          position:position,
-          velocity:{
-            x:0,
-            y:0
-          }
-        }
+      constructor(state:obj_state,params:Door_parameters = Door.default_params){
+        super(state,params);
       }
       statef(time_delta:number){
-        let collides = g.getRoom().check_collisions(this.getFullCollisionBox())
+        let collides = g.getRoom().checkCollisions(this.getFullCollisionBox())
         for(let obj of collides){
           if(obj.tags.includes("player")){
             g.loadRoomString(this.params.location);
@@ -47,13 +43,13 @@ import { g } from "../main";
       renderf(time_delta:number){
        return super.renderf(time_delta); 
       }
-      register_animations(){
+      registerAnimations(){
     
       }
-      register_audio(){
+      registerAudio(){
     
       }
-      register_controls(){
+      registerControls(){
         
       }
     }

@@ -20,7 +20,7 @@
       flex-direction: row;
     }
     #target{
-      cursor:none;
+      /*cursor:none;*/
     }
     .column{
       display:flex;
@@ -72,8 +72,11 @@
       flex-direction: column;
     }
     #properties_target{
-      font-size:.6em;
+      font-size:.3em;
       width:40%;
+    }
+    #properties_target p{
+      margin:.1em;
     }
     #room_list{
       width:10%;
@@ -120,21 +123,43 @@
         <p id="obj_name">obj_name</p>
         <p id="obj_position">
           <span>Position:</span>
-          <input id="pos_x" value="0" type="text"> / <input id="pos_y" value="0" type="text">
+          <input id="pos_x" value="0" type="number"/> / <input id="pos_y" value="0" type="number"/>
         </p>
         <p id="obj_velocity">
           <span>Velocity:</span>
-          <input id="vel_x" type="text"> / <input id="vel_y" type="text">
+          <input id="vel_x" type="number"/> / <input id="vel_y" type="number"/>
         </p>
         <p id="obj_rotation">
           <span>Rotation:</span>
-          <input id="rot" type="text">
+          <input id="rot" type="number"/>
         </p>
         <p id="obj_scaling">
           <span>Scaling:</span>
-          <input id="scaling" type="text">
+          <input id="sca_x" value="0" type="number"/> / <input id="sca_y" value="0" type="number"/>
+        </p>
+        <p id="render_p">
+          <span>Render:</span>
+          <input id="render" type="checkbox"/>
+        </p>
+        <p id="collision_p">
+          <span>Collisions:</span>
+          <input id="collision" type="checkbox"/>
         </p>
         <button id="delete_element">DELETE</button>
+        <div id="params_list">
+          <p>
+            <span>Param1:</span>
+            <input id="param1" type="text"/>
+          </p>
+          <p>
+            <span>Param2:</span>
+            <input id="param2" type="number"/>
+          </p>
+          <p>
+            <span>Param3:</span>
+            <input id="param3" type="checkbox"/>
+          </p>
+        </div>
       </div>
       <div id="room_list" class="fill scroll">
 

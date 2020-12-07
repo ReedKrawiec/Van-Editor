@@ -20,7 +20,7 @@ export interface control_func{
 }
 
 interface mouseBinds{
-  [key:string]: Array<[control_func,obj<unknown>]>
+  [key:string]: Array<[control_func,obj]>
 }
 
 interface keyBinds{
@@ -202,8 +202,6 @@ window.addEventListener("wheel",(e)=>{
 
 window.addEventListener("keydown", (e) => {
   held_keys[e.code] = true;
-  console.log(all_binds);
-  console.log(repeat_binds);
   let d:bind[];
   if(DEBUG){
     if(DEBUG_v.last_clicked && DEBUG_v.last_clicked.id == "debug_target"){
@@ -299,7 +297,7 @@ interface bind{
   function:control_func,
   execute:exec_type,
   repeat_timer?:repeat_bind,
-  obj?:obj<unknown>,
+  obj?:obj,
   executed?:boolean,
   interval?:number,
   camera?:Camera
@@ -369,7 +367,7 @@ export enum exec_type{
 }
 
 let id = 0;
-export function Bind(keyname:string,func:control_func,type:exec_type,interval:number,object?:obj<unknown>):number{
+export function Bind(keyname:string,func:control_func,type:exec_type,interval:number,object?:obj):number{
   if(keyname.slice(0,5) === "mouse"){
     let b:bind = {
       key:keyname,

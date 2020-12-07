@@ -1,10 +1,15 @@
 import { exec_type } from "../../lib/controls";
-import { Goomba, direction } from "./Goomba";
+import { Goomba, direction, Player_Params } from "./Goomba";
+import {obj_state} from "../../lib/state";
 
 
 export class ControlledPlayer extends Goomba {
+  constructor(state:obj_state,params:Player_Params){
+    super(state,params);
+    this.state.position = state.position;
+  }
   tags = ["player"];
-  register_controls() {
+  registerControls() {
     this.bindControl("KeyA", exec_type.repeat, () => {
       if (this.state.velocity.x > -10) {
         this.state.velocity.x = this.state.velocity.x - 1;
@@ -32,8 +37,5 @@ export class ControlledPlayer extends Goomba {
         this.audio.play("slime", 0.1);
       }
     });
-  }
-  statef(time: number) {
-    super.statef(time);
   }
 }

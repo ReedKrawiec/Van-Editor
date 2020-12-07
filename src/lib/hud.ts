@@ -34,8 +34,12 @@ export interface Text_Node{
   align?:CanvasTextAlign;
 }
 export class HUD{
-  graphic_elements:Array<obj<unknown>> = [];
+  graphic_elements:obj[] = [];
   text_elements:Array<Text> = [];
+  constructor(){
+    this.text_elements.push(...this.setTextElements());
+    this.graphic_elements.push(...this.setGraphicElements()); 
+  }
   statef(a:number){
     for(let x of this.graphic_elements){
       x.statef(a);
@@ -43,6 +47,12 @@ export class HUD{
     for(let x of this.text_elements){
       x.statef(a);
     }
+  }
+  setTextElements():Text[]{
+    return [];
+  }
+  setGraphicElements():obj[]{
+    return [];
   }
 }
 

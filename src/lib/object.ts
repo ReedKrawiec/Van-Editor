@@ -1,4 +1,4 @@
-import { state_func, obj_state, position } from "./state";
+import { state_func, obj_state, position, dimensions } from "./state";
 import { render_func, render_type } from "./render";
 import { Particle, positioned_sprite, sprite, sprite_gen } from "./sprite";
 import { collision_box } from "./collision";
@@ -21,7 +21,7 @@ export function rotation_length(length: number, degree: number) {
   }
 }
 
-export function getId(a: Array<obj<unknown>>, id: string): obj<unknown> {
+export function getId(a: obj[], id: string): obj {
   for (let b = 0; b < a.length; b++) {
     if (a[b].id == id) {
       return a[b];
@@ -91,10 +91,14 @@ enum RenderType{
   sprite
 }
 
-export abstract class obj<T>{
+export interface params{
+  [index:string]:boolean|string|number
+}
+
+export abstract class obj{
   sprite_url = "";
   sprite_sheet: HTMLImageElement;
-  state: T;
+  state: obj_state;
   render_type = render_type.sprite;
   height: number;
   width: number;
@@ -109,29 +113,33 @@ export abstract class obj<T>{
   audio = new audio();
   last_render:number = 0;
   game:game<unknown>;
-  parent:composite_obj<unknown>;
-  scaling:number = 1;
+  parent:composite_obj;
+  scaling:dimensions = {
+    height:1,
+    width:1
+  };
   params:unknown = {};
+  layer:number = 1;
   static default_params:unknown = {};
   getState() {
     return this.state;
   }
-  register_animations() {
+  registerAnimations() {
 
   }
-  register_audio() {
+  registerAudio() {
 
   }
-  constructor(position:position,rotation:number = 0,scaling:number = 1,params = obj.default_params) {
+  constructor(state:obj_state,params = obj.default_params) {
     
     this.id = "" + counter;
     this.binds = [];
     counter++;
     this.params = params;
-    this.register_controls();
-    this.register_audio();
-    this.rotation = rotation;
-    this.scaling = scaling;
+    this.registerControls();
+    this.registerAudio();
+    this.state = Object.assign({},JSON.parse(JSON.stringify(state)));
+    
     this.params = params;
   }
   load() {
@@ -141,23 +149,22 @@ export abstract class obj<T>{
       a.src = this.sprite_url;
       a.onload = (async () => {
         _this.sprite_sheet = a;
-        _this.register_animations();
+        _this.registerAnimations();
         await this.audio.load();
         resolve();
       });
     })
   }
-  combined_objects():obj<unknown>[]{
+  combinedObjects():obj[]{
     return [this];
   }
-  distance(a:obj<unknown>):number{
+  distance(a:obj):number{
     let o_st = a.state as unknown as obj_state;
     let st = this.state as unknown as obj_state;
     return Distance(st.position,o_st.position);
   }
-  angleTowards(a: obj<unknown>): number {
-    let b = a as obj<obj_state>;
-    return this.angleTowardsPoint(b.state.position);
+  angleTowards(a: obj): number {
+    return this.angleTowardsPoint(a.state.position);
   }
   angleTowardsPoint(position:position):number{
     let state = this.state as unknown as obj_state;
@@ -180,7 +187,7 @@ export abstract class obj<T>{
       this.binds.push(Bind(key, func, x, interval));
     }
   }
-  register_controls(){
+  registerControls(){
 
   }
   statef(time:number){
@@ -197,10 +204,10 @@ export abstract class obj<T>{
       Unbind(a);
     }
   }
-  collisionCheck(a: collision_box): Array<obj<unknown>> {
+  collisionCheck(a: collision_box): obj[] {
     if (this.collision) {
       let room = this.game.getRoom();
-      return room.check_collisions(a, [this.id]);
+      return room.checkCollisions(a, [this.id]);
     }
     return [];
   }
@@ -210,16 +217,16 @@ export abstract class obj<T>{
       return {
         x:st.position.x,
         y:st.position.y,
-        width:this.hitbox.width * this.scaling,
-        height:this.hitbox.height * this.scaling
+        width:this.hitbox.width * this.state.scaling.width,
+        height:this.hitbox.height * this.state.scaling.height
       }
     }
     else{
       return {
         x:st.position.x,
         y:st.position.y,
-        width:this.width * this.scaling,
-        height:this.height * this.scaling
+        width:this.width * this.state.scaling.width,
+        height:this.height * this.state.scaling.height
       }
     }
   }
@@ -229,21 +236,20 @@ export abstract class obj<T>{
       return [{
         x:st.position.x,
         y:st.position.y,
-        width:this.hitbox.width * this.scaling,
-        height:this.hitbox.height * this.scaling
+        width:this.width * this.state.scaling.width,
+        height:this.height * this.state.scaling.height
       }]
     }
     else{
       return [{
         x:st.position.x,
         y:st.position.y,
-        width:this.width * this.scaling,
-        height:this.height * this.scaling
+        width:this.width * this.state.scaling.width,
+        height:this.height * this.state.scaling.height
       }]
     }
   }
   collidesWithBox(a: collision_box): boolean {
-    let st = this.state as unknown as obj_state;
     let hcollides = false, vcollides = false;
     let hbox = this.hitbox;
     if(!this.hitbox){
@@ -255,10 +261,10 @@ export abstract class obj<T>{
       }
     }
     let ob = {
-      left: (st.position.x + hbox.x_offset - hbox.width * this.scaling / 2),
-      right: (st.position.x + hbox.x_offset + hbox.width * this.scaling / 2),
-      top: (st.position.y + hbox.y_offset + hbox.height * this.scaling / 2),
-      bottom: (st.position.y + hbox.y_offset - hbox.height * this.scaling / 2)
+      left: (this.state.position.x + hbox.x_offset - hbox.width * this.state.scaling.width / 2),
+      right: (this.state.position.x + hbox.x_offset + hbox.width * this.state.scaling.width / 2),
+      top: (this.state.position.y + hbox.y_offset + hbox.height * this.state.scaling.height / 2),
+      bottom: (this.state.position.y + hbox.y_offset - hbox.height * this.state.scaling.height / 2)
     }
 
     let box = {
@@ -282,16 +288,16 @@ export abstract class obj<T>{
     }
     return hcollides && vcollides;
   }
-  emit_particle(name:string,offset:position,lifetime:number,range:number){
+  emitParticle(name:string,offset:position,lifetime:number,range:number){
     let room = this.game.getRoom();
     let st = this.state as unknown as obj_state;
     let final_position:position = {
       x:st.position.x + offset.x,
       y:st.position.y + offset.y
     }
-    room.emit_particle(name,final_position,lifetime,range)
+    room.emitParticle(name,final_position,lifetime,range)
   }
-  render_track(time:number): positioned_sprite[] {
+  renderTrack(time:number): positioned_sprite[] {
     let rendered = this.renderf(time - this.last_render);
     let final:positioned_sprite[];
     this.last_render = time;
@@ -344,30 +350,30 @@ export abstract class obj<T>{
 interface composite_static{
   x:number,
   y:number,
-  obj:obj<unknown>
+  obj:obj
 }
 
-export abstract class composite_obj<T> extends obj<T>{
-  objects:obj<unknown>[] = [];
+export abstract class composite_obj extends obj{
+  objects:obj[] = [];
   render = false;
   registered = false;
   collision = false;
   statics:composite_static[] = [];
-  constructor(pos:position){
+  constructor(pos:obj_state){
     super(pos);
   }
   load(){
     return Promise.all([...this.objects.map((a)=>a.load()),...this.statics.map(a=>a.obj.load())]);
   }
-  combined_objects():obj<unknown>[]{
+  combinedObjects():obj[]{
     let combined = [...this.objects,...this.statics.map(a=>a.obj)];
     combined.forEach(a=>a.parent = this);
     return [...combined,this];
   }
-  get_Items_by_Tag(tag:string){
-    return this.combined_objects().filter((a)=>a.tags.indexOf(tag) > -1);
+  getItemsByTag(tag:string){
+    return this.combinedObjects().filter((a)=>a.tags.indexOf(tag) > -1);
   }
-  add_Item(a:obj<unknown>,list=this.objects){
+  addItem(a:obj,list=this.objects){
     list.push(a);
     a.parent = this;
     this.game.getRoom().addItem(a);
@@ -413,6 +419,6 @@ export class static_obj {
   sprite: HTMLImageElement;
 }
 
-export abstract class gravity_obj<T> extends obj<T>{
+export abstract class gravity_obj extends obj{
   gravity = true
 }

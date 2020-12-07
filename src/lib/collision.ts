@@ -16,11 +16,11 @@ enum direction{
   down
 }
 
-export function check_all_objects(c: collision_box,objs:Array<obj<unknown>>,exemption:string[] = []):Array<obj<unknown>>{
+export function check_all_objects(c: collision_box,objs:obj[],exemption:string[] = []):obj[]{
   return objs.filter((a)=>(!exemption.some((b)=>a.tags.indexOf(b) !== -1) && a.collidesWithBox(c)));
 }
 
-export function check_all_collisions(c: collision_box,objs:Array<obj<unknown>>,exemption:string[] = []):Array<obj<unknown>>{
+export function check_all_collisions(c: collision_box,objs:obj[],exemption:string[] = []):obj[]{
   let matched = [];
   for (let a of objs) {
     if (!exemption.some((b)=>a.tags.indexOf(b) !== -1) && a.collision && a.collidesWithBox(c)) {
@@ -30,7 +30,7 @@ export function check_all_collisions(c: collision_box,objs:Array<obj<unknown>>,e
   return matched
 }
 //Checks up to the first collision
-export function check_collisions(c: collision_box, objs: Array<obj<unknown>>, exemption:string) {
+export function check_collisions(c: collision_box, objs: obj[], exemption:string) {
   for (let a of objs) {
     if (a.id !== exemption && a.collision && a.collidesWithBox(c)) {
       return a;
@@ -39,7 +39,7 @@ export function check_collisions(c: collision_box, objs: Array<obj<unknown>>, ex
   return null;
 }
 
-function velocity_max(velocity:number,box:collision_box,objs:Array<obj<unknown>>, exemption:string,dir:direction){
+function velocity_max(velocity:number,box:collision_box,objs:obj[], exemption:string,dir:direction){
   let collision = check_collisions(box, objs, exemption);
   if(collision == null){
     return velocity;
@@ -66,7 +66,7 @@ function velocity_max(velocity:number,box:collision_box,objs:Array<obj<unknown>>
   }
 }
 
-export function velocity_collision_check(object:obj<unknown>,list:Array<obj<unknown>>) {
+export function velocityCollisionCheck(object:obj,list:obj[]) {
   list = [...list];
   let ob = object;
   let st = object.state as obj_state;

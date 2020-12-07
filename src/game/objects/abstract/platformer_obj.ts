@@ -5,10 +5,11 @@ export interface plat_state extends obj_state{
   health:number  
 }
 
-export abstract class platformer_obj<t> extends gravity_obj<t>{
+export abstract class platformer_obj extends gravity_obj{
   enemy = false;
-  constructor(position:position,rotation:number,scaling:number,parameters:unknown){
-    super(position,rotation,scaling,parameters);
+  state:plat_state
+  constructor(state:obj_state,parameters:unknown){
+    super(state,parameters);
   }
   statef(a:number){
     let state = this.state as unknown as plat_state;
@@ -18,10 +19,11 @@ export abstract class platformer_obj<t> extends gravity_obj<t>{
   }
 }
 
-export class platformer_obj_composite<t> extends composite_obj<t>{
+export class platformer_obj_composite extends composite_obj{
   enemy = false;
-  constructor(a:position){
-    super(a);
+  state:plat_state;
+  constructor(state:obj_state){
+    super(state);
   }
   statef(a:number){
     let state = this.state as unknown as plat_state;

@@ -68,18 +68,15 @@ function createWindow () {
     return;
   })
   ipcMain.on('object-path-request', (event, arg) => {
-    console.log(arg);
-    console.log("test");
-    
+    let defau = path.join(path.parse(project_path[0]).dir,arg)
     let prompt = dialog.showSaveDialogSync(mainWindow,{
-      title:"Choose object name",
-      defaultPath:arg,
+      title:`Choose ${arg} name`,
+      defaultPath:defau,
       filters:[
-        {name:"main.ts",extensions:["ts"]}
+        {name:"Typescript file",extensions:["ts"]}
       ]
     });
     console.log(prompt);
-
     event.returnValue = prompt; 
   })
   // Open the DevTools.

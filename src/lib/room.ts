@@ -1,12 +1,13 @@
 import { gravity_obj,obj } from "./object";
 import { Particle, sprite } from "./sprite";
-import { obj_state } from "./state";
-import { velocity_collision_check,check_collisions,collision_box,check_all_collisions,check_all_objects} from "./collision";
+import { dimensions, obj_state } from "./state";
+import { velocityCollisionCheck,check_collisions,collision_box,check_all_collisions,check_all_objects} from "./collision";
 import {render_collision_box,DEBUG} from "../van";
 import {Bind,control_func, exec_type} from "./controls";
 import {HUD,Text, Text_Node} from "./hud";
 import {audio} from "./audio"
-import {game,debug_update_obj_list} from "../van";
+import {game} from "../van";
+import {debug_update_obj_list} from "../lib/debug";
 import {prefabs} from "../game/objects/prefabs";
 
 interface position{
@@ -14,7 +15,7 @@ interface position{
   y:number
 }
 
-export function apply_gravity(ob:gravity_obj<unknown>,grav_const:number, grav_max:number){
+export function applyGravity(ob:gravity_obj,grav_const:number, grav_max:number){
   let st = ob.state as obj_state;
   if(ob.gravity && st.velocity.y > grav_max){
     st.velocity.y += grav_const;
@@ -33,15 +34,13 @@ interface particles{
 
 export interface room_i<T>{
   background_url:string,
-  objects:Array<obj<unknown>>
+  objects:obj[]
   state:T
 }
 
 export interface object_state_config {
   type:string,
-  position: position,
-  rotation: number,
-  scaling:number,
+  state:obj_state,
   parameters?: unknown
 }
 
@@ -52,9 +51,9 @@ export interface state_config{
 export class room<T>{
   background_url: string;
   background: HTMLImageElement;
-  objects: Array<obj<unknown>> = [];
+  objects: obj[] = [];
   particles:particles = {};
-  particles_arr: Array<obj<unknown>> = [];
+  particles_arr: obj[] = [];
   state: T;
   binds:number[] = [];
   game:game<unknown>;
@@ -70,14 +69,10 @@ export class room<T>{
   exportStateConfig(){
     let config:state_config = {objects:[]};
     for(let o of this.objects){
-      console.log(o.constructor.name + " "+ o.parent)
         if(!o.parent){
-        let st = (<obj<obj_state>>o).state;
         config.objects.push({
           type:o.constructor.name,
-          position: st.position,
-          rotation:o.rotation,
-          scaling:o.scaling,
+          state:o.state,
           parameters:o.params
         })
       }
@@ -103,14 +98,14 @@ export class room<T>{
   }
   async addItemStateConfig(config:object_state_config){
     if(prefabs[config.type]){
-      let new_obj = <obj<unknown>>(new prefabs[config.type](config.position,config.rotation,config.scaling,config.parameters));
-      this.addItems(new_obj.combined_objects());
+      let new_obj = <obj>(new prefabs[config.type](Object.assign({},config.state),config.parameters));
+      this.addItems(new_obj.combinedObjects());
     }
     else{
       console.log("UNKNOWN TYPE ATTEMPTED TO LOAD: " + config.type)
     }
   }
-  async addItem(o:obj<unknown>, list = this.objects){
+  async addItem(o:obj, list = this.objects){
     await o.load();
     o.game = this.game;
     list.push(o);
@@ -118,7 +113,7 @@ export class room<T>{
       debug_update_obj_list();
     }
   }
-  async addItems(o:obj<unknown>[], list = this.objects){
+  async addItems(o:obj[], list = this.objects){
     for(let ob of o){
       ob.game = this.game;
     }
@@ -145,19 +140,19 @@ export class room<T>{
   bindControl(key:string,x:exec_type,func:control_func,interval:number = 1){
     this.binds.push(Bind(key,func,x,interval)); 
   }
-  check_collisions(box:collision_box,exempt?:Array<string>):Array<obj<unknown>>{
+  checkCollisions(box:collision_box,exempt?:string[]):obj[]{
     if(DEBUG){
       render_collision_box(box);
     }
     return check_all_collisions(box,this.objects,exempt);
   }
-  check_objects(box:collision_box,exempt?:string[],list=this.objects){
+  checkObjects(box:collision_box,exempt?:string[],list=this.objects){
     if(DEBUG){
       render_collision_box(box);
     }
     return check_all_objects(box,list,exempt);
   }
-  register_controls(){
+  registerControls(){
 
   }
   cleanup(){
@@ -171,6 +166,7 @@ export class room<T>{
       text_node.statef(time);
     }
     for (let a = 0; a < this.objects.length; a++) {
+      velocityCollisionCheck(this.objects[a], this.objects);
       this.objects[a].statef(time);
     }
     if(this.game.state.cameras){
@@ -181,8 +177,14 @@ export class room<T>{
       } 
     }
   }
-  emit_particle(name:string,pos:position,lifetime:number,pos_range:number){
-    this.addItem(new Particle(this.particles[name],pos,lifetime,pos_range), this.particles_arr);
+  emitParticle(name:string,pos:position,lifetime:number,pos_range:number){
+    let state = {
+      position:pos,
+      velocity:{x:0,y:0},
+      rotation:0,
+      scaling:{width:1,height:1}
+    }
+    this.addItem(new Particle(this.particles[name],state,lifetime,pos_range), this.particles_arr);
   }
   getObj(id:string){
     for(let a = 0; a < this.objects.length; a++){

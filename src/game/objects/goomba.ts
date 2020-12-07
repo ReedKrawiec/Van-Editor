@@ -6,7 +6,7 @@ import { Poll_Mouse } from "../../lib/controls";
 import { collision_box } from "../../lib/collision";
 import { Bind } from "../../lib/controls";
 import {Text_Node,Text} from "../../lib/hud";
-import { Overworld } from "../rooms/Overworld/Overworld";
+import { Overworld } from "../rooms/Overworld";
 import { g } from "../main";
 
 export enum direction {
@@ -16,7 +16,6 @@ export enum direction {
 
 export interface goomba_state extends obj_state, plat_state {
   direction: direction,
-  velocity: velocity,
   jumping: boolean,
   times_airshot: number,
   max_times_airshot: number
@@ -34,34 +33,30 @@ interface goomba_params{
   id?:string
 }
 
-export class Goomba extends platformer_obj<goomba_state>{
+export class Goomba extends platformer_obj{
   sprite_url = "./sprites/folder/robot.png";
   height = 149;
   width = 149;
   tags = ["dummy"]
   collision = true;
   health_text: Text;
-  constructor(position:position,rotation:number,scaling:number,parameters:goomba_params = Goomba.default_params) {
+  state:goomba_state;
+  constructor(state:obj_state,parameters:goomba_params = Goomba.default_params) {
     
-    super(position,rotation,scaling,parameters);
+    super(state,parameters);
     if (parameters.id != undefined) {
       this.id = parameters.id;
     }
-    this.state = {
+    Object.assign(this.state,{
       direction: direction.left,
-      position:position,
-      velocity: {
-        x: 0,
-        y: 0
-      },
       jumping: false,
       health: 100,
       times_airshot: 0,
       max_times_airshot: 0
-    }
+    })
     //this.animations.play("walk1");
   }
-  register_animations() {
+  registerAnimations() {
     let sprites = sprite_gen(this.sprite_sheet, this.width, this.height);
     this.animations.add("walk1", [
       [0, sprites[0][0]],
@@ -88,7 +83,7 @@ export class Goomba extends platformer_obj<goomba_state>{
       [0, sprites[0][7]]
     ], 1)
   }
-  register_audio() {
+  registerAudio() {
     this.audio.add("slime", "./sounds/goomba/slimeball.wav");
     this.audio.add("explosion", "./sounds/explosion.mp3")
   }
@@ -112,7 +107,7 @@ export class Goomba extends platformer_obj<goomba_state>{
     let cursor = room.getObj("cursor");
     if (this.collision) {
       let col = this.getFullCollisionBox();
-      if (room.check_collisions({
+      if (room.checkCollisions({
         width: col.width,
         height: 1,
         x: col.x,

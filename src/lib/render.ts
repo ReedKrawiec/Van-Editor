@@ -1,7 +1,7 @@
 import { sprite } from "./sprite";
 import { GetViewportDimensions } from "../van";
 import { obj } from "./object";
-import { obj_state } from "./state";
+import { dimensions, obj_state } from "./state";
 import { Text_Node, TextSetting,HUD,Text } from "./hud";
 import {positioned_sprite} from "./sprite"
 
@@ -88,7 +88,7 @@ interface sprite_args {
   x: number,
   y: number,
   rotation: number,
-  scale:number
+  scale:dimensions
 }
 
 interface renderer_args {
@@ -121,34 +121,7 @@ export const element_render = (r:renderer_args,o:obj<unknown>,time:number) => {
   }
 }
 */
-export const object_render = (r:renderer_args,o:obj<unknown>,time:number) => {
-  let rendered = o.render_track(time);
-  if (Array.isArray(rendered)) {
-    for (let p of rendered){
-      sprite_renderer(r, {
-        sprite:p.sprite,
-        x: p.x,
-        y: p.y,
-        rotation: o.rotation,
-        scale:o.scaling
-      });
-    }
-  }
-  else {
-    let positioned_sprite = rendered as positioned_sprite;
-    if(o.render_type == render_type.sprite){
-      sprite_renderer(r, {
-        sprite: positioned_sprite.sprite,
-        x: positioned_sprite.x,
-        y: positioned_sprite.y,
-        rotation: o.rotation,
-        scale:o.scaling
-      });
-    } else if(o.render_type == render_type.rect){
 
-    }
-  }
-}
 
 export const hud_text_renderer = (r: renderer_args, s: TextSetting) => {
   let vheight = GetViewportDimensions().height;
@@ -187,10 +160,10 @@ export const text_renderer = (r:renderer_args,s:TextSetting) => {
 export const sprite_renderer = (r: renderer_args, s: sprite_args) => {
   let camera = r.camera;
   let vheight = r.camera.state.dimensions.height / r.camera.state.scaling;
-  let final_x = ((s.x - camera.state.position.x + camera.state.dimensions.width * (1/r.camera.state.scaling) / 2 - s.sprite.sprite_width * s.scale / 2) * r.camera.state.scaling);
-  let final_y = ((vheight - s.y - camera.state.dimensions.height * (1/r.camera.state.scaling) / 2 - s.sprite.sprite_height * s.scale / 2 + camera.state.position.y) * r.camera.state.scaling);
-  let height = s.sprite.sprite_height * r.camera.state.scaling;
-  let width = s.sprite.sprite_width * r.camera.state.scaling;
+  let final_x = ((s.x - camera.state.position.x + camera.state.dimensions.width * (1/r.camera.state.scaling) / 2 - s.sprite.sprite_width * s.scale.width / 2) * r.camera.state.scaling);
+  let final_y = ((vheight - s.y - camera.state.dimensions.height * (1/r.camera.state.scaling) / 2 - s.sprite.sprite_height * s.scale.height / 2 + camera.state.position.y) * r.camera.state.scaling);
+  let height = s.sprite.sprite_height * r.camera.state.scaling * s.scale.height;
+  let width = s.sprite.sprite_width * r.camera.state.scaling * s.scale.width;
   r.context.save();
   r.context.globalAlpha = s.sprite.opacity;
   r.context.translate(final_x  + (width) / 2, final_y + height / 2)
@@ -202,10 +175,10 @@ export const sprite_renderer = (r: renderer_args, s: sprite_args) => {
     s.sprite.top,
     s.sprite.sprite_width,
     s.sprite.sprite_height,
-    -(width) / 2,
+    -(width ) / 2,
     -height / 2,
-    width * s.scale,
-    height * s.scale
+    width,
+    height
   )
   r.context.restore();
 }
