@@ -1,3 +1,4 @@
+import { g } from "../game/main";
 import {game,PAUSED,DEBUG,DEBUG_v, GetScreenDimensions,GetViewportDimensions} from "../van";
 import { collision_box } from "./collision";
 import {obj} from "./object";
@@ -29,7 +30,7 @@ interface keyBinds{
 let target = document.getElementById("target");
 export function init_click_handler(game:game<unknown>){
   window.addEventListener("click",(e)=>{
-    let mouse = Poll_Mouse(game.state.canvas,game.state.cameras[0]);
+    let mouse = Poll_Mouse(game.state.cameras[0]);
     let box:collision_box = {
       x:mouse.x,
       y:mouse.y,
@@ -323,7 +324,7 @@ let all_binds:Array<bind> = []
 
 let repeat_binds:Array<repeat_bind> = [];
 
-export function Poll_Mouse(canvas:HTMLCanvasElement,camera:Camera):position{
+export function Poll_Mouse(camera:Camera,canvas:HTMLCanvasElement = g.state.canvas):position{
   let height = GetViewportDimensions().height;
   let wratio = parseFloat(window.getComputedStyle(canvas).width)/GetViewportDimensions().width;
   let vratio = parseFloat(window.getComputedStyle(canvas).height)/GetViewportDimensions().height;

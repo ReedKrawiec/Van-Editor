@@ -185,7 +185,7 @@ export class game<T>{
             DEBUG_v.selected_element = null;
           }
           else{
-            let mouse = Poll_Mouse(DEBUG_v.target,DEBUG_v.camera);
+            let mouse = Poll_Mouse(DEBUG_v.camera,DEBUG_v.target);
             DEBUG_v.click_position = mouse;
             let alL_clicked = this.getRoom().checkObjects({
               x:mouse.x,
@@ -247,7 +247,7 @@ export class game<T>{
         type:btype.mouse,
         id:6,
         function:()=>{
-          let mouse = Poll_Mouse(DEBUG_v.target,DEBUG_v.camera);
+          let mouse = Poll_Mouse(DEBUG_v.camera,DEBUG_v.target);
           DEBUG_v.middle_position = mouse;
         },
         execute:exec_type.once,
@@ -284,7 +284,7 @@ export class game<T>{
             DEBUG_v.rotation_element = null;
           }
           else{
-            let mouse = Poll_Mouse(DEBUG_v.target,DEBUG_v.camera);
+            let mouse = Poll_Mouse(DEBUG_v.camera,DEBUG_v.target);
             let clicked = this.getRoom().checkObjects({
               x:mouse.x,
               y:mouse.y,
@@ -441,8 +441,15 @@ export class game<T>{
           DEBUG_v.last_clicked = e.target;
         }
       })
-      document.getElementById("pause_button").addEventListener("click",(e)=>{
+      let pause_button = document.getElementById("pause_button")
+      pause_button.addEventListener("click",(e)=>{
         PAUSED = !PAUSED;
+        if(PAUSED){
+          pause_button.innerHTML = "UNPAUSE";
+        }
+        else{
+          pause_button.innerHTML = "PAUSE";
+        }
       });
       setInterval(()=>{
         if(this.getRoom()){
@@ -644,12 +651,13 @@ export class game<T>{
       clearInterval(this.state.logic);
     }
     this.state.logic = this.start_logic(logic_loop_interval)
+    this.state.current_room = x;
     if (DEBUG) {
       debug_update_room_list();
       debug_update_prefabs();
       debug_update_obj_list();
     }
-    this.state.current_room = x;
+    
 
     if(!this.isRendering){
       this.render(0);

@@ -39,7 +39,7 @@ export class Debug_hud extends HUD{
 }
 
 export function debug_statef(t: number) {
-  let mouse = Poll_Mouse(DEBUG_v.target, DEBUG_v.camera);
+  let mouse = Poll_Mouse(DEBUG_v.camera,DEBUG_v.target);
   if(DEBUG_v.camera.hud){
     DEBUG_v.camera.hud.statef(t);
   }
@@ -271,6 +271,7 @@ export function debug_update_properties_element() {
 export function debug_update_obj_list() {
   let list = document.getElementById("objects_list");
   list.textContent = '';
+  console.log("qwh")
   if (g.getRoom()) {
     for (let obj of g.getRoom().objects) {
       let para = document.createElement("p");

@@ -14,6 +14,7 @@ import {obj_state, position} from "../../lib/state";
 import {Camera} from "../../lib/render";
 import * as json from "./Board.json";
 import { velocityCollisionCheck } from "../../lib/collision";
+import { exec_type, Poll_Mouse } from "../../lib/controls";
 export enum side{
   white,
   black
@@ -44,6 +45,7 @@ export interface board_state{
   white_board:Array<Array<space_state>>,
   black_board:Array<Array<space_state>>
   selected:piece,
+  selected_original_position:position,
   squares:Array<Array<Move>>,
   pieces:Array<piece>,
   attacked:Array<position>
@@ -74,6 +76,7 @@ export class Board extends room<board_state>{
       white_board:[],
       black_board:[],
       selected:undefined,
+      selected_original_position:undefined,
       squares:[],
       pieces:[],
       attacked:[]
@@ -107,26 +110,50 @@ export class Board extends room<board_state>{
     }
     this.state.black_board = this.blank_board();
     this.state.white_board = this.blank_board();
-    /*
-    let camera = g.state.cameras[0];
-    camera.state.position = {
-      x:0,
-      y:0
-    }
-    let screen_dimensions = GetViewportDimensions();
-    camera.state.dimensions = {
-      width:screen_dimensions.width,
-      height:screen_dimensions.height
-    }
-    */
     for(let x of this.state.pieces){
       if(x.state.side === side.white){
         x.bind_controls();
       }
     }
   }
-  get_meta(a:position,s:side){
-    if(a.x >= 0 && a.x < 8 && a.y >= 0 && a.y < 8){
+  registerControls() {
+    this.bindControl("mouse0down", exec_type.once, () => {
+      console.log("yep");
+      let mouse = Poll_Mouse(g.state.cameras[0]);
+      let collisions = g.getRoom().checkCollisions({
+        x: mouse.x,
+        y: mouse.y,
+        width: 1,
+        height: 1
+      }, ["move"]);
+      if (collisions.length > 0) {
+        (<piece>collisions[0]).select();
+        this.state.selected_original_position = Object.assign({},collisions[0].state.position);
+      }
+    });
+    this.bindControl("mouse0up",exec_type.once,() => {
+      if(this.state.selected){
+        console.log("what");
+        let collisions = g.getRoom().checkObjects({
+          x:this.state.selected.state.position.x,
+          y:this.state.selected.state.position.y,
+          width:1,
+          height:1
+        },["piece"]);
+        console.log(collisions[0]);
+        if(collisions.length > 0 && collisions[0].render == true){
+          (<Move>collisions[0]).drop();
+        }
+        else{
+          this.state.selected.state.position = this.state.selected_original_position;
+          this.state.selected = undefined;
+          this.state.selected_original_position = undefined;
+        }
+      }
+    })
+  }
+  get_meta(a: position, s: side) {
+    if (a.x >= 0 && a.x < 8 && a.y >= 0 && a.y < 8){
       if(s === side.white){
         return this.state.white_board[a.x][a.y];
       }
@@ -158,7 +185,6 @@ export class Board extends room<board_state>{
       this.clear_attacked_board(this.state.white_board);
       
       this.calculate_attacked_board(this.state.white_board,side.white);
-      console.log(this.state.white_board);
       
     }
     for(let x of this.state.pieces){
@@ -182,9 +208,7 @@ export class Board extends room<board_state>{
     for(let a of this.state.pieces){
       if(a.state.side == s){
         let attacked = a.getAttacking();
-        console.log(a);
         for(let b of attacked){
-          console.log(b);
           x[b.x][b.y].attacked = true;
         }
       }
@@ -243,8 +267,10 @@ export class Board extends room<board_state>{
     }
   }
   statef(a:number){
-    for(let a = 0;a<this.objects.length;a++){
-      velocityCollisionCheck(this.objects[a], this.objects);
+    if(this.state.selected){
+      let mouse = Poll_Mouse(g.state.cameras[0]);
+      this.state.selected.state.position.x = mouse.x;
+      this.state.selected.state.position.y = mouse.y;
     }
   }
 }

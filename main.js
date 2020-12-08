@@ -64,8 +64,8 @@ function createWindow () {
     console.log("compiling");
     let output = await compile();
     console.log(output);
-    createWindow();
-    return;
+    editor.reload();
+    event.returnValue = "yep";
   })
   ipcMain.on('object-path-request', (event, arg) => {
     let defau = path.join(path.parse(project_path[0]).dir,arg)

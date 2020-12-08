@@ -208,7 +208,7 @@ export class Underworld extends room<overworld_i>{
       if (cursor) {
         cursor.collision = false;
         cursor.gravity = false;
-        let mouse = Poll_Mouse(this.game.state.canvas,this.game.state.cameras[0]);
+        let mouse = Poll_Mouse(this.game.state.cameras[0]);
         cursor.state.position.x = mouse.x;
         cursor.state.position.y = mouse.y;
       }

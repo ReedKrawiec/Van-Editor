@@ -35,6 +35,7 @@ export class piece extends obj{
   collision = true;
   params:piece_parameters;
   state:piece_state;
+  tags = ["piece"];
   static default_params:piece_parameters = {
     side:side.white
   }
@@ -182,9 +183,8 @@ export class piece extends obj{
       Unbind(a);
     }
   }
-  bind_controls(){
-    this.bindControl("mouse1",exec_type.once,()=>{
-      let room = g.state.current_room as Board;
+  select(){
+    let room = g.state.current_room as Board;
       if(room.state.turn === this.state.side){
         room.state.selected = this;
         room.clear_attacked();
@@ -199,6 +199,12 @@ export class piece extends obj{
         room.state.attacked = valid_attacked;
         room.attack(valid_attacked);
       }
+  }
+  bind_controls(){
+    /*
+    this.bindControl("mouse1",exec_type.once,()=>{
+      this.select();  
     })
+    */
   }
 }
