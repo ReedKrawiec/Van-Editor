@@ -10,7 +10,7 @@ import { King } from "../objects/King";
 import { Pawn } from "../objects/Pawn";
 import {game,GetViewportDimensions } from "../../van";
 import {g} from "../main";
-import {obj_state, position} from "../../lib/state";
+import {obj_state, position, room_state} from "../../lib/state";
 import {Camera} from "../../lib/render";
 import * as json from "./Board.json";
 import { velocityCollisionCheck } from "../../lib/collision";
@@ -48,9 +48,11 @@ export interface board_state{
   selected_original_position:position,
   squares:Array<Array<Move>>,
   pieces:Array<piece>,
-  attacked:Array<position>
+  attacked:Array<position>,
+  dragging:boolean
 }
 export class Board extends room<board_state>{
+  state:board_state;
   background_url="./sprites/board.png";
   constructor(game:game<unknown>){
     super(game,{objects:[]});
@@ -79,7 +81,8 @@ export class Board extends room<board_state>{
       selected_original_position:undefined,
       squares:[],
       pieces:[],
-      attacked:[]
+      attacked:[],
+      dragging:false
     };
     let row2 = [new Rook(state_converter({x:0,y:7},0,1),{side:side.black}),new Knight(state_converter({x:1,y:7},0,1),{side:side.black}),new Bishop(state_converter({x:2,y:7},0,1),{side:side.black}),new Queen(state_converter({x:3,y:7},0,1),{side:side.black}),new King(state_converter({x:4,y:7},0,1),{side:side.black}),new Bishop(state_converter({x:5,y:7},0,1),{side:side.black}),new Knight(state_converter({x:6,y:7},0,1),{side:side.black}),new Rook(state_converter({x:7,y:7},0,1),{side:side.black})];
     let row7 = [new Rook(state_converter({x:0,y:0},0,1),{side:side.white}),new Knight(state_converter({x:1,y:0},0,1),{side:side.white}),new Bishop(state_converter({x:2,y:0},0,1),{side:side.white}),new Queen(state_converter({x:3,y:0},0,1),{side:side.white}),new King(state_converter({x:4,y:0},0,1),{side:side.white}),new Bishop(state_converter({x:5,y:0},0,1),{side:side.white}),new Knight(state_converter({x:6,y:0},0,1),{side:side.white}),new Rook(state_converter({x:7,y:0},0,1),{side:side.white})];
@@ -118,7 +121,7 @@ export class Board extends room<board_state>{
   }
   registerControls() {
     this.bindControl("mouse0down", exec_type.once, () => {
-      console.log("yep");
+
       let mouse = Poll_Mouse(g.state.cameras[0]);
       let collisions = g.getRoom().checkCollisions({
         x: mouse.x,
@@ -127,27 +130,27 @@ export class Board extends room<board_state>{
         height: 1
       }, ["move"]);
       if (collisions.length > 0) {
-        (<piece>collisions[0]).select();
-        this.state.selected_original_position = Object.assign({},collisions[0].state.position);
+        if(this.state.turn == (<piece>collisions[0]).state.side){
+          this.state.dragging = true;
+          (<piece>collisions[0]).select();
+          this.state.selected_original_position = Object.assign({}, collisions[0].state.position);
+        }
       }
     });
-    this.bindControl("mouse0up",exec_type.once,() => {
-      if(this.state.selected){
-        console.log("what");
+    this.bindControl("mouse0up", exec_type.once, () => {
+      if (this.state.selected) {
         let collisions = g.getRoom().checkObjects({
           x:this.state.selected.state.position.x,
           y:this.state.selected.state.position.y,
           width:1,
           height:1
         },["piece"]);
-        console.log(collisions[0]);
         if(collisions.length > 0 && collisions[0].render == true){
           (<Move>collisions[0]).drop();
         }
         else{
           this.state.selected.state.position = this.state.selected_original_position;
-          this.state.selected = undefined;
-          this.state.selected_original_position = undefined;
+          this.state.dragging = false;
         }
       }
     })
@@ -267,10 +270,11 @@ export class Board extends room<board_state>{
     }
   }
   statef(a:number){
-    if(this.state.selected){
+    if(this.state.selected && this.state.dragging){
       let mouse = Poll_Mouse(g.state.cameras[0]);
       this.state.selected.state.position.x = mouse.x;
       this.state.selected.state.position.y = mouse.y;
     }
+    super.statef(a);
   }
 }

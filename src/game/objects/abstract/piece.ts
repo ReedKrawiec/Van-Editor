@@ -87,7 +87,6 @@ export class piece extends obj{
   }
   attackDiagonal(){
     let cords = this.getCords();
-    console.log(cords);
     let room = g.getRoom() as Board;
     let attacked:Array<position> = [];
     for(let a = 1;a < 8;a++){

@@ -4,11 +4,13 @@ let { ipcRenderer } = window.require("electron");
 const path = window.require("path");
 let fs = window.require("fs");
 import { prefabs } from "../game/objects/prefabs";
-import { DEBUG_v, project_path, debug_vars, DEBUG, PAUSED } from "../van";
+import { project_path, DEBUG, PAUSED, setPaused,viewport } from "../van";
 import { g } from "../game/main";
 import { rooms as room_list } from "../game/rooms/rooms";
-import { Poll_Mouse, held_keys } from "../lib/controls";
+import {Bind,btype,Poll_Mouse,exec_type, held_keys,debug_binds} from "../lib/controls";
 import { HUD,Text } from "../lib/hud";
+import {Camera} from "../lib/render";
+import {position,dimensions,velocity} from "../lib/state";
 
 export class Debug_hud extends HUD{
   setTextElements(){
@@ -22,7 +24,7 @@ export class Debug_hud extends HUD{
       color: "white",
       align:"left",
       scaling:1
-    }, () => `X:${DEBUG_v.camera.state.position.x.toFixed(0)}`),
+    }, () => `X:${debug_state.camera.state.position.x.toFixed(0)}`),
     new Text({
       position: {
         x: 10,
@@ -33,42 +35,42 @@ export class Debug_hud extends HUD{
       color: "white",
       align:"left",
       scaling:1
-    }, () => `Y:${DEBUG_v.camera.state.position.y.toFixed(0)}`)
+    }, () => `Y:${debug_state.camera.state.position.y.toFixed(0)}`)
     ];
   }
 }
 
 export function debug_statef(t: number) {
-  let mouse = Poll_Mouse(DEBUG_v.camera,DEBUG_v.target);
-  if(DEBUG_v.camera.hud){
-    DEBUG_v.camera.hud.statef(t);
+  let mouse = Poll_Mouse(debug_state.camera,debug_state.target);
+  if(debug_state.camera.hud){
+    debug_state.camera.hud.statef(t);
   }
   if (!PAUSED) {
     debug_update_properties_element();
   }
-  if (DEBUG_v.selected_element) {
-    if (PAUSED && held_keys["ControlLeft"] && DEBUG_v.current_action.property == "scaling") {
+  if (debug_state.selected_element) {
+    if (PAUSED && held_keys["ControlLeft"] && debug_state.current_action.property == "scaling") {
      let dist = {
-      x:Math.abs(mouse.x - DEBUG_v.selected_element.state.position.x),
-      y:Math.abs(mouse.y - DEBUG_v.selected_element.state.position.y)
+      x:Math.abs(mouse.x - debug_state.selected_element.state.position.x),
+      y:Math.abs(mouse.y - debug_state.selected_element.state.position.y)
      }
-     DEBUG_v.selected_element.state.scaling.width = (2 * dist.x)/DEBUG_v.selected_element.width;
-     DEBUG_v.selected_element.state.scaling.height = (2 * dist.y)/DEBUG_v.selected_element.height;
+     debug_state.selected_element.state.scaling.width = (2 * dist.x)/debug_state.selected_element.width;
+     debug_state.selected_element.state.scaling.height = (2 * dist.y)/debug_state.selected_element.height;
     }
     else {
-      let st = DEBUG_v.selected_element.state as unknown as obj_state;
-      st.position.x = mouse.x - DEBUG_v.selected_element_offset.x,
-        st.position.y = mouse.y - DEBUG_v.selected_element_offset.y
+      let st = debug_state.selected_element.state as unknown as obj_state;
+      st.position.x = mouse.x - debug_state.selected_element_offset.x,
+        st.position.y = mouse.y - debug_state.selected_element_offset.y
     }
   }
-  if (PAUSED && DEBUG_v.rotation_element) {
-    DEBUG_v.rotation_element.state.rotation = DEBUG_v.rotation_element.angleTowardsPoint(mouse);
+  if (PAUSED && debug_state.rotation_element) {
+    debug_state.rotation_element.state.rotation = debug_state.rotation_element.angleTowardsPoint(mouse);
   }
-  if (DEBUG_v.middle_position) {
-    let diff_y = mouse.y - DEBUG_v.middle_position.y;
-    let diff_x = mouse.x - DEBUG_v.middle_position.x;
-    DEBUG_v.camera.state.position.x = DEBUG_v.camera.state.position.x + -1 * diff_x;
-    DEBUG_v.camera.state.position.y = DEBUG_v.camera.state.position.y + -1 * diff_y;
+  if (debug_state.middle_position) {
+    let diff_y = mouse.y - debug_state.middle_position.y;
+    let diff_x = mouse.x - debug_state.middle_position.x;
+    debug_state.camera.state.position.x = debug_state.camera.state.position.x + -1 * diff_x;
+    debug_state.camera.state.position.y = debug_state.camera.state.position.y + -1 * diff_y;
   }
 
 }
@@ -133,9 +135,9 @@ if (DEBUG) {
   })
   properties_elements.pos_x.addEventListener("input", (e) => {
     
-    let ele = DEBUG_v.selected_properties_element;
+    let ele = debug_state.selected_properties_element;
     let new_val = parseFloat(properties_elements.pos_x.value) || 0;
-    DEBUG_v.actions_stack.push({
+    debug_state.actions_stack.push({
       property:"position",
       element:ele,
       new:JSON.stringify({x:new_val,y:ele.state.position.y}),
@@ -144,9 +146,9 @@ if (DEBUG) {
     ele.state.position.x = new_val;
   })
   properties_elements.pos_y.addEventListener("input", (e) => {
-    let ele = DEBUG_v.selected_properties_element;
+    let ele = debug_state.selected_properties_element;
     let new_val = parseFloat(properties_elements.pos_y.value) || 0;
-    DEBUG_v.actions_stack.push({
+    debug_state.actions_stack.push({
       property:"position",
       element:ele,
       new:JSON.stringify({x:ele.state.position.x,y:new_val}),
@@ -155,17 +157,17 @@ if (DEBUG) {
     ele.state.position.y = new_val;
   })
   properties_elements.vel_x.addEventListener("input", (e) => {
-    let ele = DEBUG_v.selected_properties_element;
+    let ele = debug_state.selected_properties_element;
     ele.state.velocity.x = parseFloat(properties_elements.vel_x.value) || 0;
   })
   properties_elements.vel_y.addEventListener("input", (e) => {
-    let ele = DEBUG_v.selected_properties_element;
+    let ele = debug_state.selected_properties_element;
     ele.state.velocity.y = parseFloat(properties_elements.vel_y.value) || 0;
   })
   properties_elements.rot.addEventListener("input", (e) => {
-    let ele = DEBUG_v.selected_properties_element;
+    let ele = debug_state.selected_properties_element;
     let new_val = parseFloat(properties_elements.rot.value) || 0;
-    DEBUG_v.actions_stack.push({
+    debug_state.actions_stack.push({
       property:"rotation",
       element:ele,
       new:JSON.stringify(new_val),
@@ -174,9 +176,9 @@ if (DEBUG) {
     ele.state.rotation = new_val;
   })
   properties_elements.sca_x.addEventListener("input", (e) => {
-    let ele = DEBUG_v.selected_properties_element;
+    let ele = debug_state.selected_properties_element;
     let new_val = parseFloat(properties_elements.sca_x.value) || 0;
-    DEBUG_v.actions_stack.push({
+    debug_state.actions_stack.push({
       property:"scaling",
       element:ele,
       new:JSON.stringify({width:new_val,height:ele.state.scaling.height}),
@@ -185,9 +187,9 @@ if (DEBUG) {
     ele.state.scaling.width = new_val;
   })
   properties_elements.sca_y.addEventListener("input", (e) => {
-    let ele = DEBUG_v.selected_properties_element;
+    let ele = debug_state.selected_properties_element;
     let new_val = parseFloat(properties_elements.sca_y.value) || 0;
-    DEBUG_v.actions_stack.push({
+    debug_state.actions_stack.push({
       property:"scaling",
       element:ele,
       new:JSON.stringify({width:ele.state.scaling.width,height:new_val}),
@@ -196,22 +198,22 @@ if (DEBUG) {
     ele.state.scaling.height = new_val;
   })
   properties_elements.render.addEventListener("input", (e) => {
-    let ele = DEBUG_v.selected_properties_element;
+    let ele = debug_state.selected_properties_element;
     ele.render = properties_elements.render.checked;
   })
   properties_elements.collision.addEventListener("input", (e) => {
-    let ele = DEBUG_v.selected_properties_element;
+    let ele = debug_state.selected_properties_element;
     ele.collision = properties_elements.collision.checked;
   })
   document.getElementById("delete_element").addEventListener("click", (e) => {
-    let ele = DEBUG_v.selected_properties_element;
+    let ele = debug_state.selected_properties_element;
     ele.delete();
   })
 }
 
 export function debug_update_properties_element() {
-  if (DEBUG_v.selected_properties_element) {
-    let ele = DEBUG_v.selected_properties_element;
+  if (debug_state.selected_properties_element) {
+    let ele = debug_state.selected_properties_element;
     document.getElementById("obj_name").innerHTML = ele.constructor.name;
     properties_elements.pos_x.value = "" + ele.state.position.x.toFixed(2);
     properties_elements.pos_y.value = "" + ele.state.position.y.toFixed(2);
@@ -245,7 +247,7 @@ export function debug_update_properties_element() {
         input.focus();
       })
       input.addEventListener("input", (e) => {
-        let ele = DEBUG_v.selected_properties_element;
+        let ele = debug_state.selected_properties_element;
         let val: string = input.value;
         if (!isNaN(val as unknown as number)) {
           (<params>ele.params)[k] = parseFloat(val);
@@ -271,18 +273,17 @@ export function debug_update_properties_element() {
 export function debug_update_obj_list() {
   let list = document.getElementById("objects_list");
   list.textContent = '';
-  console.log("qwh")
   if (g.getRoom()) {
     for (let obj of g.getRoom().objects) {
       let para = document.createElement("p");
       para.appendChild(document.createTextNode(obj.constructor.name));
       para.classList.add("object_list_item");
       para.addEventListener("click", (e) => {
-        if (DEBUG_v.selected_properties_element == <obj>obj) {
-          DEBUG_v.camera.state.position = Object.assign({}, (<obj>obj).state.position)
+        if (debug_state.selected_properties_element == <obj>obj) {
+          debug_state.camera.state.position = Object.assign({}, (<obj>obj).state.position)
         }
         else {
-          DEBUG_v.selected_properties_element = <obj>obj;
+          debug_state.selected_properties_element = <obj>obj;
           debug_update_properties_element()
         }
       })
@@ -337,7 +338,7 @@ export async function debug_update_prefabs() {
     div.classList.add("prefab_box");
     div.addEventListener("mousedown", async () => {
       let val = {
-        position:{ x: DEBUG_v.camera.state.position.x, y: DEBUG_v.camera.state.position.y },
+        position:{ x: debug_state.camera.state.position.x, y: debug_state.camera.state.position.y },
         velocity:{x:0,y:0},
         rotation:0,
         scaling:{width:1,height:1}
@@ -349,7 +350,336 @@ export async function debug_update_prefabs() {
   }
 }
 
+interface debug_action{
+  property:string,
+  old:string,
+  new:string,
+  element:obj
+}
+
+export interface debug_vars{
+  target:HTMLCanvasElement,
+  camera:Camera,
+  last_clicked:HTMLElement,
+  selected_element_initial_scaling:dimensions,
+  selected_element:obj,
+  selected_element_offset:position,
+  rotation_element:obj,
+  selected_properties_element:obj,
+  middle_position:position,
+  click_position:position,
+  actions_stack:debug_action[],
+  current_action:debug_action
+}
+
+export let debug_state:debug_vars;
+
 export let debug_setup = () => {
+  debug_state = {
+    target: document.getElementById("debug_target") as HTMLCanvasElement,
+    camera: new Camera({
+      x:0,
+      y:0,
+      dimensions:{
+        height:viewport.height,
+        width:viewport.width
+      },
+      scaling:1,
+      debug:true
+    }
+    ,{
+      x:1,
+      y:0,
+      width:1,
+      height:1
+    }),
+    last_clicked:undefined,
+    selected_element:undefined,
+    selected_element_offset:undefined,
+    rotation_element:undefined,
+    middle_position:undefined,
+    click_position:undefined,
+    selected_properties_element:undefined,
+    selected_element_initial_scaling:{width:1,height:1},
+    actions_stack:[],
+    current_action:undefined
+  }
+  debug_state.camera.hud = new Debug_hud();
+  debug_binds.push({
+    key:"mouse0down",
+    type:btype.mouse,
+    id:0,
+    function:()=>{
+      if(debug_state.selected_element){
+        debug_state.selected_element = null;
+      }
+      else{
+        let mouse = Poll_Mouse(debug_state.camera,debug_state.target);
+        debug_state.click_position = mouse;
+        let alL_clicked = g.getRoom().checkObjects({
+          x:mouse.x,
+          y:mouse.y,
+          height:1,
+          width:1
+        })
+        let clicked;
+        let filtered = alL_clicked.filter((ele)=>ele == debug_state.selected_properties_element)
+        if(filtered.length > 0){
+          clicked = filtered[0]
+        }
+        else{
+          clicked = alL_clicked[0];
+        }
+        if(clicked){
+          if(held_keys["ControlLeft"]){
+            debug_state.current_action = {
+              element:clicked,
+              property:"scaling",
+              old:JSON.stringify(clicked.scaling),
+              new:undefined
+           }
+          }
+          else{
+            debug_state.current_action = {
+              element:clicked,
+              property:"position",
+              old:JSON.stringify((<obj_state>clicked.state).position),
+              new:undefined
+            }
+          }
+          debug_state.selected_properties_element= clicked;
+          debug_update_properties_element()
+          debug_state.selected_element = clicked;
+          debug_state.selected_element_initial_scaling = clicked.state.scaling;
+          debug_state.selected_element_offset = {
+            x: mouse.x - (<obj_state>clicked.state).position.x,
+            y: mouse.y - (<obj_state>clicked.state).position.y
+          }
+        }
+      }
+    },
+    execute:exec_type.once,
+    camera:debug_state.camera
+  });
+  debug_binds.push({
+    key:"mouse1up",
+    type:btype.mouse,
+    id:5,
+    function:()=>{
+      debug_state.middle_position = undefined;
+    },
+    execute:exec_type.once,
+    camera:debug_state.camera
+  });
+  debug_binds.push({
+    key:"mouse1down",
+    type:btype.mouse,
+    id:6,
+    function:()=>{
+      let mouse = Poll_Mouse(debug_state.camera,debug_state.target);
+      debug_state.middle_position = mouse;
+    },
+    execute:exec_type.once,
+    camera:debug_state.camera
+  });
+  debug_binds.push({
+    key:"mouse0up",
+    type:btype.mouse,
+    id:1,
+    function:()=>{
+      if(debug_state.selected_element){
+        if(debug_state.current_action.property == "scaling"){
+          debug_state.current_action.new = JSON.stringify(debug_state.selected_element.state.scaling)
+        }
+        else if(debug_state.current_action.property == "position"){
+          debug_state.current_action.new = JSON.stringify((<obj_state>debug_state.selected_element.state).position)
+        }
+        
+        debug_state.actions_stack.push(debug_state.current_action);
+      }
+      
+      debug_state.selected_element = undefined;
+      debug_update_properties_element()
+    },
+    execute:exec_type.once,
+    camera:debug_state.camera
+  });
+  debug_binds.push({
+    key:"mouse2down",
+    type:btype.mouse,
+    id:3,
+    function:()=>{
+      if(debug_state.rotation_element){
+        debug_state.rotation_element = null;
+      }
+      else{
+        let mouse = Poll_Mouse(debug_state.camera,debug_state.target);
+        let clicked = g.getRoom().checkObjects({
+          x:mouse.x,
+          y:mouse.y,
+          height:1,
+          width:1
+        })[0]
+        if(clicked){
+          debug_state.rotation_element = clicked;
+          debug_state.current_action = {
+            element:debug_state.rotation_element,
+            property:"rotation",
+            old:JSON.stringify(debug_state.rotation_element.rotation),
+            new:undefined
+          }
+        }
+      }
+    },
+    execute:exec_type.once,
+    camera:debug_state.camera
+  });
+  debug_binds.push({
+    key:"mouse2up",
+    type:btype.mouse,
+    id:4,
+    function:()=>{
+      debug_state.current_action.new = JSON.stringify(debug_state.rotation_element.state.rotation)
+      debug_state.actions_stack.push(debug_state.current_action);
+      debug_state.rotation_element = undefined;
+    },
+    execute:exec_type.once,
+    camera:debug_state.camera
+  });
+
+  let left_func = ()=>{
+    let shift_held = held_keys["ShiftLeft"] ? 1:0;
+    if(debug_state.last_clicked.id == "debug_target")
+      debug_state.camera.state.position.x = debug_state.camera.state.position.x - ((5 + shift_held * 5) * (1/debug_state.camera.state.scaling));
+  };
+  let right_func = ()=>{
+    let shift_held = held_keys["ShiftLeft"] ? 1:0;
+    if(debug_state.last_clicked.id == "debug_target")
+      debug_state.camera.state.position.x = debug_state.camera.state.position.x + ((5 + shift_held * 5) * (1/debug_state.camera.state.scaling));
+  };
+  let down_func = ()=>{
+    let shift_held = held_keys["ShiftLeft"] ? 1:0;
+    
+    if(!held_keys["ControlLeft"] && debug_state.last_clicked.id == "debug_target")
+      debug_state.camera.state.position.y = debug_state.camera.state.position.y - ((5 + shift_held * 5) * (1/debug_state.camera.state.scaling));
+  };
+  let up_func = ()=>{
+    let shift_held = held_keys["ShiftLeft"] ? 1:0;
+    if(debug_state.last_clicked.id == "debug_target")
+      debug_state.camera.state.position.y = debug_state.camera.state.position.y + ((5 + shift_held * 5) * (1/debug_state.camera.state.scaling));
+  };
+  let scroll_up = ()=>{
+    if(debug_state.last_clicked.id == "debug_target")
+      debug_state.camera.state.scaling = debug_state.camera.state.scaling + 0.05;
+  }
+  let save_func = ()=>{
+    let ctrl_held = held_keys["ControlLeft"];
+    if(ctrl_held && PAUSED){
+      let name = g.getRoom().constructor.name;
+      let a = path.join(`${project_path}`,`../rooms/${name}.json`);
+      try {
+        fs.writeFileSync(a,JSON.stringify(g.getRoom().exportStateConfig()));
+      } catch(e){
+        console.log("ERROR WRITING ROOM INFO FILE."); 
+      }
+      alert("Saved");
+      
+    }
+    else if(ctrl_held && !PAUSED){
+      alert("pause to enable saving.")
+    }
+  }
+  let scroll_down = ()=>{
+    if(debug_state.last_clicked.id == "debug_target" && debug_state.camera.state.scaling > 0.05)
+      debug_state.camera.state.scaling = debug_state.camera.state.scaling - 0.05;
+  }
+  let undo_func = ()=>{
+    if(held_keys["ControlLeft"]){
+      let curr:debug_action = debug_state.actions_stack.pop();
+      if(curr){
+        if(curr.property == "position"){
+          curr.element.state.position = JSON.parse(curr.old);
+        }
+        else if(curr.property === "rotation"){
+          curr.element.rotation = JSON.parse(curr.old);
+        }
+        else if(curr.property === "scaling"){
+          curr.element.scaling = JSON.parse(curr.old);
+        }
+      }
+    }
+  }
+  debug_binds.push({
+    key:"KeyA",
+    type:btype.keyboard,
+    id:Bind("KeyA",left_func,exec_type.repeat,1),
+    function:left_func,
+    execute:exec_type.repeat
+  })
+  debug_binds.push({
+    key:"KeyD",
+    type:btype.keyboard,
+    id:Bind("KeyD",right_func,exec_type.repeat,1),
+    function:right_func,
+    execute:exec_type.repeat
+  })
+  debug_binds.push({
+    key:"KeyW",
+    type:btype.keyboard,
+    id:Bind("KeyW",up_func,exec_type.repeat,1),
+    function:up_func,
+    execute:exec_type.repeat
+  })
+  debug_binds.push({
+    key:"KeyS",
+    type:btype.keyboard,
+    id:Bind("KeyS",down_func,exec_type.repeat,1),
+    function:down_func,
+    execute:exec_type.repeat
+  })
+  debug_binds.push({
+    key:"scrollup",
+    type:btype.mouse,
+    id:Bind("scrollup",scroll_up,exec_type.once,1),
+    function:scroll_up,
+    execute:exec_type.once
+  })
+  debug_binds.push({
+    key:"scrolldown",
+    type:btype.mouse,
+    id:Bind("scrolldown",scroll_down,exec_type.once,1),
+    function:scroll_down,
+    execute:exec_type.once
+  })
+  debug_binds.push({
+    key:"KeyS",
+    type:btype.keyboard,
+    id:Bind("KeyS",save_func,exec_type.once,1),
+    function:save_func,
+    execute:exec_type.once
+  })
+  debug_binds.push({
+    key:"KeyZ",
+    type:btype.keyboard,
+    id:Bind("KeyZ",undo_func,exec_type.once,1),
+    function:undo_func,
+    execute:exec_type.once
+  })
+  window.addEventListener("click",(e)=>{
+    if(e.target instanceof HTMLElement){
+      debug_state.last_clicked = e.target;
+    }
+  })
+  let pause_button = document.getElementById("pause_button")
+  pause_button.addEventListener("click",(e)=>{
+    setPaused(!PAUSED);
+    if(PAUSED){
+      pause_button.innerHTML = "UNPAUSE";
+    }
+    else{
+      pause_button.innerHTML = "PAUSE";
+    }
+  });
   let obj_button = document.getElementById("new_object_button");
   let room_button = document.getElementById("new_room_button");
   room_button.addEventListener("click", (e) => {

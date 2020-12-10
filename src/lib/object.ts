@@ -12,6 +12,8 @@ interface obj_i<T> {
   renderf: render_func
 }
 
+//Finds the side lengths of a triangle if given the  angle (in degrees)
+//along with the length of the hypotenuse
 export function rotation_length(length: number, degree: number) {
   let a_len = length * Math.sin(degree * Math.PI / 180);
   let b_len = length * Math.cos(degree * Math.PI / 180);
@@ -21,15 +23,9 @@ export function rotation_length(length: number, degree: number) {
   }
 }
 
-export function getId(a: obj[], id: string): obj {
-  for (let b = 0; b < a.length; b++) {
-    if (a[b].id == id) {
-      return a[b];
-    }
-  }
-  return undefined;
-}
-
+//This counter tracks the global number of objects created so far
+//an object's id (if not overwritten) will be a unique integer, which
+//uses this counter.
 let counter = 0;
 
 interface anim_storage {
@@ -42,12 +38,17 @@ interface void_func {
 
 class animations {
   animations: anim_storage = {};
+  //Tracks the time passed since the current animation
+  //has started playing
   animation_tracker = 0;
   current: string;
   callback: void_func;
   animating:boolean = false;
-  add(name: string, s: Array<[number, sprite]>, length: number) {
-    this.animations[name] = [s, length];
+  //defines an animation that can be played using the play method
+  //the keyframes are an array of tuples in the 
+  //format of [(time for this sprite to show), sprite]
+  add(name: string, keyframes: Array<[number, sprite]>, length: number) {
+    this.animations[name] = [keyframes, length];
   }
   play(name: string, callback?: void_func) {
     this.current = name;
@@ -57,24 +58,28 @@ class animations {
   renderf(t: number): sprite {
     let curr_animation = this.animations[this.current][0];
     let length: number = this.animations[this.current][1];
-    let index;
-    for (index = 0; index < curr_animation.length - 1; index++) {
-      if (this.animation_tracker >= curr_animation[index][0] && this.animation_tracker < curr_animation[index + 1][0]) {
+    let index = 0;
+    for (; index < curr_animation.length - 1; index++) {
+      let keyframe_time = curr_animation[index][0];
+      let next_keyframe_time = curr_animation[index + 1][0];
+      if (this.animation_tracker >= keyframe_time && this.animation_tracker < next_keyframe_time) {
         this.animation_tracker = this.animation_tracker + t;
         this.animating = true;
+        //Returns the raw sprite that's correct to show at this time
         return curr_animation[index][1];
       }
     }
-    if (this.callback) {
-      this.callback();
-    }
-    this.animating = false;
     if (this.animation_tracker >= length) {
       this.animation_tracker = 0;
+      this.animating = false;
+      if (this.callback) {
+        this.callback();
+      }
     }
     else {
       this.animation_tracker += t;
     }
+    //Returns the last appropriate frame until the animation is over.
     return curr_animation[index][1];
   }
 }
@@ -86,47 +91,62 @@ interface hitbox{
   y_offset:number
 }
 
-enum RenderType{
-  box,
-  sprite
-}
-
 export interface params{
   [index:string]:boolean|string|number
 }
 
 export abstract class obj{
+  //Url to the object's individual sprite, or all of its sprites
+  //bundled into a spritesheet
   sprite_url = "";
+  //This is the loaded sprite/spritesheet of the object
+  //which is fetched from the url above
   sprite_sheet: HTMLImageElement;
   state: obj_state;
   render_type = render_type.sprite;
+  //These should correspond to the actual object's sprite height and width
+  //If using a sprite sheet, these be one sprite's height and width.
   height: number;
   width: number;
+  
   collision: boolean = false;
   hitbox: hitbox
   id: string;
+  //Array of bind ids
+  //Binds are indentified by a unique number that is return when
+  //The bind is created. We must store these ids in order to 
+  //delete the binds when they are manually unbound, or the object is deleted.
   binds: Array<number>;
   tags:string[] = [];
+  //tags are used to exclude or include objects when checking for collisions,
+  //and for object identification / classification in scripts
   rotation: number = 0;
   render = true;
   animations = new animations();
   audio = new audio();
+  //Last render time, used to calculate delta_time
   last_render:number = 0;
   game:game<unknown>;
   parent:composite_obj;
+  //Scales the object vertically and horizontally
+  //Updates the sprite of the object, and its hitbox
   scaling:dimensions = {
     height:1,
     width:1
   };
+  //Params are options for the object, that do not rely on state
+  // For example, the side of a piece in chess.
   params:unknown = {};
   layer:number = 1;
   static default_params:unknown = {};
   getState() {
     return this.state;
   }
+  //Animations should be registered using this.animations.add in this method
   registerAnimations() {
 
   }
+  //Sounds should be registered using this.audio.add in this method.
   registerAudio() {
 
   }
@@ -138,7 +158,9 @@ export abstract class obj{
     this.params = params;
     this.registerControls();
     this.registerAudio();
-    this.state = Object.assign({},JSON.parse(JSON.stringify(state)));
+    //Creates a copy of the passed in initial state to avoid 
+    //Updating the saved state of the room
+    this.state = JSON.parse(JSON.stringify(state));
     
     this.params = params;
   }
@@ -155,9 +177,14 @@ export abstract class obj{
       });
     })
   }
+  //Within normal objects, this just returns an array that contains the object.
+  //This method is overwritten by composite objects, which returns every object
+  //that the composite object contains. This simplifies the backend work, as each
+  //object returns an array of atleast one object.
   combinedObjects():obj[]{
     return [this];
   }
+  //Distance from one object to another.
   distance(a:obj):number{
     let o_st = a.state as unknown as obj_state;
     let st = this.state as unknown as obj_state;
@@ -179,14 +206,10 @@ export abstract class obj{
     return 0;
   }
   bindControl(key: string, x: exec_type, func: control_func, interval = 1) {
-    if (key == "mouse1") {
-      let b = Bind(key, func, x, interval, this);
-      this.binds.push(b);
-    }
-    else {
-      this.binds.push(Bind(key, func, x, interval));
-    }
+    this.binds.push(Bind(key, func, x, interval, this));
   }
+  //This method is where controls and keybinds should
+  //be defined using bindControl
   registerControls(){
 
   }
@@ -204,53 +227,45 @@ export abstract class obj{
       Unbind(a);
     }
   }
-  collisionCheck(a: collision_box): obj[] {
-    if (this.collision) {
-      let room = this.game.getRoom();
-      return room.checkCollisions(a, [this.id]);
-    }
-    return [];
-  }
+  //Returns the collision box of the object
+  //Does not have to correspond to the object's sprite's size 
+  //A composite object instead returns the bounding box that 
+  //contains every one of its contained objects
   getFullCollisionBox():collision_box{
-    let st = this.state as unknown as obj_state;
+    //If a developer defined hitbox exists, use that, otherwise
+    //generate it using the sprite width / height
     if(this.hitbox){
       return {
-        x:st.position.x,
-        y:st.position.y,
+        x:this.state.position.x,
+        y:this.state.position.y,
         width:this.hitbox.width * this.state.scaling.width,
         height:this.hitbox.height * this.state.scaling.height
       }
     }
     else{
       return {
-        x:st.position.x,
-        y:st.position.y,
+        x:this.state.position.x,
+        y:this.state.position.y,
         width:this.width * this.state.scaling.width,
         height:this.height * this.state.scaling.height
       }
     }
   }
+  //This is another methods, similar to getCombined
+  //Just returns an array containing the object's collision box
+  //Overwritten in composite objects to return every object's collision box
+  //within the composite obect.
   getAllCollisionBoxes():collision_box[]{
     let st = this.state as unknown as obj_state;
-    if(this.hitbox){
-      return [{
-        x:st.position.x,
-        y:st.position.y,
-        width:this.width * this.state.scaling.width,
-        height:this.height * this.state.scaling.height
-      }]
-    }
-    else{
-      return [{
-        x:st.position.x,
-        y:st.position.y,
-        width:this.width * this.state.scaling.width,
-        height:this.height * this.state.scaling.height
-      }]
-    }
+    return [this.getFullCollisionBox()]
   }
-  collidesWithBox(a: collision_box): boolean {
-    let hcollides = false, vcollides = false;
+  //Checks to see if an object actually collides with the provided box.
+  //A box represents an area within the game space
+  //Checking for collisions is trivial currently, as all hitboxes are axis aligned
+  //But implementing a more complicated physics engine would make this method's impl.
+  //significatly more complex.
+  collidesWithBox(other_object: collision_box): boolean {
+    let collides_horrizontally = false, collides_vertically = false;
     let hbox = this.hitbox;
     if(!this.hitbox){
       hbox = {
@@ -260,34 +275,38 @@ export abstract class obj{
         height:this.height
       }
     }
-    let ob = {
+    let object_bounds = {
       left: (this.state.position.x + hbox.x_offset - hbox.width * this.state.scaling.width / 2),
       right: (this.state.position.x + hbox.x_offset + hbox.width * this.state.scaling.width / 2),
       top: (this.state.position.y + hbox.y_offset + hbox.height * this.state.scaling.height / 2),
       bottom: (this.state.position.y + hbox.y_offset - hbox.height * this.state.scaling.height / 2)
     }
 
-    let box = {
-      left: (a.x - a.width / 2),
-      right: (a.x + a.width / 2),
-      top: (a.y + a.height / 2),
-      bottom: (a.y - a.height / 2)
+    let other_object_bounds = {
+      left: (other_object.x - other_object.width / 2),
+      right: (other_object.x + other_object.width / 2),
+      top: (other_object.y + other_object.height / 2),
+      bottom: (other_object.y - other_object.height / 2)
     }
 
-    if ((ob.left >= box.left && ob.left < box.right) || (box.left > ob.left && box.left < ob.right)) {
-      hcollides = true;
+    //We can compare the sides of the boxes to see if they overlap
+    //We check once for hoizontal overlap, then vertical.
+    if ((object_bounds.left >= other_object_bounds.left && object_bounds.left < other_object_bounds.right) || (other_object_bounds.left > object_bounds.left && other_object_bounds.left < object_bounds.right)) {
+      collides_horrizontally = true;
     }
     else{
       return false;
     }
-    if ((ob.bottom >= box.bottom && ob.bottom < box.top) || (box.bottom > ob.bottom && box.bottom < ob.top)){
-      vcollides = true;
+    if ((object_bounds.bottom >= other_object_bounds.bottom && object_bounds.bottom < other_object_bounds.top) || (other_object_bounds.bottom > object_bounds.bottom && other_object_bounds.bottom < object_bounds.top)){
+      collides_vertically = true;
     }
     else{
       return false;
     }
-    return hcollides && vcollides;
+    return collides_horrizontally && collides_vertically;
   }
+  //The particle must be registered in the room's registerParticles method 
+  //The name parameter should correspond to the key of a particle
   emitParticle(name:string,offset:position,lifetime:number,range:number){
     let room = this.game.getRoom();
     let st = this.state as unknown as obj_state;
@@ -297,6 +316,8 @@ export abstract class obj{
     }
     room.emitParticle(name,final_position,lifetime,range)
   }
+  //Internal method that keeps calculates the delta_time
+  //Also converts individual sprites into arrays of one sprite.
   renderTrack(time:number): positioned_sprite[] {
     let rendered = this.renderf(time - this.last_render);
     let final:positioned_sprite[];
@@ -308,14 +329,17 @@ export abstract class obj{
     }
     return final;
   }
+  //Most objects should not be overwritting the renderf method
+  //Returns the appropriate sprite for the object
   renderf(time: number): positioned_sprite[] | positioned_sprite{
-    let st = this.state as unknown as obj_state;
+    //If the object doesn't have registered animations, or isn't playing one
+    //We have to create the sprite here.
     if (Object.keys(this.animations.animations).length == 0 || !this.animations.current) {
       if(!this.sprite_sheet || !this.height || !this.width){
         return {
           sprite:undefined,
-          x:st.position.x,
-          y:st.position.y
+          x:this.state.position.x,
+          y:this.state.position.y
         }
       }
       let sprite_height = this.height;
@@ -335,14 +359,14 @@ export abstract class obj{
           sprite_height: sprite_height,
           opacity:1
         },
-        x: st.position.x,
-        y: st.position.y
+        x: this.state.position.x,
+        y: this.state.position.y
       };
     }
     return {
       sprite:this.animations.renderf(time),
-      x: st.position.x,
-      y: st.position.y
+      x: this.state.position.x,
+      y: this.state.position.y
     };
   }
 }

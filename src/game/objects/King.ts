@@ -12,9 +12,12 @@ export class King extends piece{
     this.state.type = piece_type.king;
   }
   check_left_castle(room:Board,cords:position){
-    if(!this.state.has_moved && room.get_piece({x:cords.x - 1,y:cords.y}).length == 0 && room.get_piece({x:cords.x - 2,y:cords.y}).length == 0 && room.get_piece({x:cords.y - 3, y:cords.y}).length == 0){
+    if(!this.state.has_moved && room.get_piece({x:cords.x - 1,y:cords.y}).length == 0 && room.get_piece({x:cords.x - 2,y:cords.y}).length == 0 && room.get_piece({x:cords.x - 3, y:cords.y}).length == 0){
+      
+      console.log("ya")
       let rook = room.get_piece({x:cords.x - 4,y:cords.y});
       if(rook.length > 0 && !rook[0].state.has_moved){
+        console.log("no");
         return true;
       }
     }
@@ -35,7 +38,7 @@ export class King extends piece{
     let attacked:Array<position> = [];
     for(let x = -1;x <= 1; x++){
       for(let y = -1;y <= 1; y++){
-        if((x !== 0 || y !== 0) && cords.x + x >= 0 && cords.y + x < 8 && cords.y + y >= 0 && cords.y + y < 8){
+        if((x !== 0 || y !== 0) && cords.x + x >= 0 && cords.x + x < 8 && cords.y + y >= 0 && cords.y + y < 8){
           let piece = room.get_piece({x:cords.x + x, y:cords.y + y});
           let safe = true;
           if(safe && piece.length === 0 || piece[0].state.side !== this.state.side){

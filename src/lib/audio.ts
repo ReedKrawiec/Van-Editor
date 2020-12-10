@@ -4,8 +4,8 @@ interface sound_storage {
 
 export class audio {
   sounds: sound_storage = {};
-  add(name: string, s: string) {
-    this.sounds[name] = new Audio(s);
+  add(name: string, url: string) {
+    this.sounds[name] = new Audio(url);
   }
   async load() {
     let keys = Object.keys(this.sounds);

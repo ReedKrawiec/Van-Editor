@@ -106,7 +106,11 @@ export class Move extends obj {
   registerControls() {
     
     this.bindControl("mouse1", exec_type.once, () => {
-      this.drop();
+      if(this.render){
+        let room = g.getRoom() as Board;
+        room.state.selected_original_position = room.state.selected.state.position;
+        this.drop();
+      }
     })
     
   }

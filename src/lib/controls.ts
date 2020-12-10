@@ -1,9 +1,10 @@
 import { g } from "../game/main";
-import {game,PAUSED,DEBUG,DEBUG_v, GetScreenDimensions,GetViewportDimensions} from "../van";
+import {game,PAUSED,DEBUG, GetScreenDimensions,GetViewportDimensions} from "../van";
 import { collision_box } from "./collision";
 import {obj} from "./object";
 import { Camera } from "./render";
 import {position} from "./state";
+import {debug_state} from "./debug";
 
 interface mousePos{
   x:number,
@@ -40,10 +41,10 @@ export function init_click_handler(game:game<unknown>){
     
   let d:bind[];
   if(DEBUG){
-    if(DEBUG_v.last_clicked && DEBUG_v.last_clicked.id == "debug_target"){
+    if(debug_state.last_clicked && debug_state.last_clicked.id == "debug_target"){
       d = [...debug_binds];
     }
-    else if(!PAUSED && DEBUG_v.last_clicked && DEBUG_v.last_clicked.id == "target"){
+    else if(!PAUSED && debug_state.last_clicked && debug_state.last_clicked.id == "target"){
       d= [...all_binds]
     }
     else{
@@ -75,10 +76,10 @@ window.addEventListener("mousedown", (e) => {
   
   let d:bind[];
   if(DEBUG){
-    if(DEBUG_v.last_clicked && DEBUG_v.last_clicked.id == "debug_target"){
+    if(debug_state.last_clicked && debug_state.last_clicked.id == "debug_target"){
       d = [...debug_binds];
     }
-    else if(!PAUSED && DEBUG_v.last_clicked &&  DEBUG_v.last_clicked.id == "target"){
+    else if(!PAUSED && debug_state.last_clicked &&  debug_state.last_clicked.id == "target"){
       d= [...all_binds]
     }
     else{
@@ -119,10 +120,10 @@ window.addEventListener("mouseup", (e) => {
   
   let d:bind[];
   if(DEBUG){
-    if(DEBUG_v.last_clicked && DEBUG_v.last_clicked.id == "debug_target"){
+    if(debug_state.last_clicked && debug_state.last_clicked.id == "debug_target"){
       d = [...debug_binds];
     }
-    else if(!PAUSED && DEBUG_v.last_clicked && DEBUG_v.last_clicked.id == "target"){
+    else if(!PAUSED && debug_state.last_clicked && debug_state.last_clicked.id == "target"){
       d= [...all_binds]
     }
     else{
@@ -177,10 +178,10 @@ window.addEventListener("wheel",(e)=>{
 
   let d:bind[];
   if(DEBUG){
-    if(DEBUG_v.last_clicked && DEBUG_v.last_clicked.id == "debug_target"){
+    if(debug_state.last_clicked && debug_state.last_clicked.id == "debug_target"){
       d = [...debug_binds];
     }
-    else if(!PAUSED && DEBUG_v.last_clicked && DEBUG_v.last_clicked.id == "target"){
+    else if(!PAUSED && debug_state.last_clicked && debug_state.last_clicked.id == "target"){
       d= [...all_binds]
     }
     else{
@@ -205,10 +206,10 @@ window.addEventListener("keydown", (e) => {
   held_keys[e.code] = true;
   let d:bind[];
   if(DEBUG){
-    if(DEBUG_v.last_clicked && DEBUG_v.last_clicked.id == "debug_target"){
+    if(debug_state.last_clicked && debug_state.last_clicked.id == "debug_target"){
       d = [...debug_binds];
     }
-    else if(!PAUSED && DEBUG_v.last_clicked && DEBUG_v.last_clicked.id == "target"){
+    else if(!PAUSED && debug_state.last_clicked && debug_state.last_clicked.id == "target"){
       d= [...all_binds]
     }
     else{
@@ -242,10 +243,10 @@ window.addEventListener("keyup", (e) => {
   
   let d:bind[];
   if(DEBUG){
-    if(DEBUG_v.last_clicked && DEBUG_v.last_clicked.id == "debug_target"){
+    if(debug_state.last_clicked && debug_state.last_clicked.id == "debug_target"){
       d = [...debug_binds];
     }
-    else if(!PAUSED && DEBUG_v.last_clicked && DEBUG_v.last_clicked.id == "target"){
+    else if(!PAUSED && debug_state.last_clicked && debug_state.last_clicked.id == "target"){
       d= [...all_binds]
     }
     else{
