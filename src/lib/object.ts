@@ -4,12 +4,21 @@ import { Particle, positioned_sprite, sprite, sprite_gen } from "./sprite";
 import { collision_box } from "./collision";
 import { Unbind, Bind, control_func, exec_type } from "./controls";
 import {audio} from "./audio";
-import {game} from "../van";
+import {deep, game} from "../van";
 import { Distance } from "./math";
 
 interface obj_i<T> {
   statef: state_func<T>,
   renderf: render_func
+}
+
+export function getId(a: obj[], id: string): obj {
+  for (let b = 0; b < a.length; b++) {
+    if (a[b].id == id) {
+      return a[b];
+    }
+  }
+  return undefined;
 }
 
 //Finds the side lengths of a triangle if given the  angle (in degrees)
@@ -120,7 +129,6 @@ export abstract class obj{
   tags:string[] = [];
   //tags are used to exclude or include objects when checking for collisions,
   //and for object identification / classification in scripts
-  rotation: number = 0;
   render = true;
   animations = new animations();
   audio = new audio();
@@ -128,16 +136,12 @@ export abstract class obj{
   last_render:number = 0;
   game:game<unknown>;
   parent:composite_obj;
-  //Scales the object vertically and horizontally
-  //Updates the sprite of the object, and its hitbox
-  scaling:dimensions = {
-    height:1,
-    width:1
-  };
   //Params are options for the object, that do not rely on state
   // For example, the side of a piece in chess.
   params:unknown = {};
   layer:number = 1;
+  save_to_file:boolean = true;
+  tick_state = true;
   static default_params:unknown = {};
   getState() {
     return this.state;
@@ -149,6 +153,9 @@ export abstract class obj{
   //Sounds should be registered using this.audio.add in this method.
   registerAudio() {
 
+  }
+  defaultParams():unknown{
+    return deep(this.defaultParams);
   }
   constructor(state:obj_state,params = obj.default_params) {
     
@@ -185,23 +192,20 @@ export abstract class obj{
     return [this];
   }
   //Distance from one object to another.
-  distance(a:obj):number{
-    let o_st = a.state as unknown as obj_state;
-    let st = this.state as unknown as obj_state;
-    return Distance(st.position,o_st.position);
+  distance(target:obj):number{
+    return Distance(this.state.position,target.state.position);
   }
   angleTowards(a: obj): number {
     return this.angleTowardsPoint(a.state.position);
   }
-  angleTowardsPoint(position:position):number{
-    let state = this.state as unknown as obj_state;
-    if (state.position.x < position.x && state.position.y > position.y
-      || (state.position.x < position.x && state.position.y < position.y)) {
-      return 90 - Math.atan((position.y - state.position.y) / (position.x - state.position.x)) * 180 / Math.PI
+  angleTowardsPoint(target:position):number{
+    if (this.state.position.x < target.x && this.state.position.y > target.y
+      || (this.state.position.x < target.x && this.state.position.y < target.y)) {
+      return 90 - Math.atan((target.y - this.state.position.y) / (target.x - this.state.position.x)) * 180 / Math.PI
     }
-    if (state.position.x > position.x && state.position.y < position.y
-      || state.position.x > position.x && state.position.y > position.y) {
-      return 270 - Math.atan((position.y - state.position.y) / (position.x - state.position.x)) * 180 / Math.PI
+    if (this.state.position.x > target.x && this.state.position.y < target.y
+      || this.state.position.x > target.x && this.state.position.y > target.y) {
+      return 270 - Math.atan((target.y - this.state.position.y) / (target.x - this.state.position.x)) * 180 / Math.PI
     }
     return 0;
   }
@@ -256,7 +260,6 @@ export abstract class obj{
   //Overwritten in composite objects to return every object's collision box
   //within the composite obect.
   getAllCollisionBoxes():collision_box[]{
-    let st = this.state as unknown as obj_state;
     return [this.getFullCollisionBox()]
   }
   //Checks to see if an object actually collides with the provided box.
@@ -344,6 +347,9 @@ export abstract class obj{
       }
       let sprite_height = this.height;
       let sprite_width = this.width;
+      //Technically we don't need to define an object height and width
+      //If the sprite_url points to a single static sprite, as we can just pull
+      //the dimensions from the image
       if (this.height == undefined) {
         sprite_height = this.sprite_sheet.height;
       }

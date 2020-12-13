@@ -31,7 +31,11 @@ interface keyBinds{
 let target = document.getElementById("target");
 export function init_click_handler(game:game<unknown>){
   window.addEventListener("click",(e)=>{
+    
     let mouse = Poll_Mouse(game.state.cameras[0]);
+    if(!mouse){
+      return
+    }
     let box:collision_box = {
       x:mouse.x,
       y:mouse.y,
@@ -279,11 +283,11 @@ window.addEventListener("keyup", (e) => {
 let tracker = document.getElementById("target");
 window.addEventListener("mousemove", (e) => {
   var rect = (e.target as HTMLCanvasElement).getBoundingClientRect() ;
-  
+  //console.log(e.target)
   last_x = x;
   last_y = y;
-  x = e.clientX - rect.left; //x position within the element.
-  y = e.clientY - rect.top;  //y position within the element.
+  x = e.clientX; //x position within the element.
+  y = e.clientY;  //y position within the element.
 
 })
 
@@ -329,10 +333,15 @@ export function Poll_Mouse(camera:Camera,canvas:HTMLCanvasElement = g.state.canv
   let height = GetViewportDimensions().height;
   let wratio = parseFloat(window.getComputedStyle(canvas).width)/GetViewportDimensions().width;
   let vratio = parseFloat(window.getComputedStyle(canvas).height)/GetViewportDimensions().height;
-  return ({
-    x: ((x - camera.state.viewport.x)/wratio/camera.state.scaling + camera.state.position.x - camera.state.dimensions.width/camera.state.scaling/2) ,
-    y: ((height - y/vratio)/camera.state.scaling + camera.state.position.y - camera.state.dimensions.height/camera.state.scaling/2 - camera.state.viewport.y)
-  })
+  let bounds = canvas.getBoundingClientRect();
+  if(x > bounds.left && x < bounds.right && y < bounds.bottom && y > bounds.top){
+    
+    return ({
+      x: ((x - bounds.left - camera.state.viewport.x)/wratio/camera.state.scaling + camera.state.position.x - camera.state.dimensions.width/camera.state.scaling/2) ,
+      y: ((height - (y-bounds.top)/vratio)/camera.state.scaling + camera.state.position.y - camera.state.dimensions.height/camera.state.scaling/2 - camera.state.viewport.y)
+    })
+  }
+  return undefined;
 }
 
 export function ExecuteRepeatBinds(b:number){

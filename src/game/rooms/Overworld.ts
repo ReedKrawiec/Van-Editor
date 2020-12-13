@@ -190,9 +190,10 @@ export class Overworld extends room<overworld_i>{
     }
   }
   statef(time: number) {
+    console.log(time);
     if (!this.state.paused) {
       for (let a = 0; a < this.objects.length; a++) {
-        applyGravity(this.objects[a], -1, -15);
+        applyGravity(this.objects[a], -1 * time/16, -15);
       }
       let player = this.getObjByTag("player")[0] as Goomba;
       let target = this.getObjByTag("dummy")[0] as Goomba;
@@ -213,6 +214,9 @@ export class Overworld extends room<overworld_i>{
         cursor.collision = false;
         cursor.gravity = false;
         let mouse = Poll_Mouse(this.game.state.cameras[0]);
+        if(!mouse){
+          return
+        }
         cursor.state.position.x = mouse.x;
         cursor.state.position.y = mouse.y;
       }

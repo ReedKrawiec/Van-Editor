@@ -16,9 +16,8 @@ interface position{
 }
 
 export function applyGravity(ob:gravity_obj,grav_const:number, grav_max:number){
-  let st = ob.state as obj_state;
-  if(ob.gravity && st.velocity.y > grav_max){
-    st.velocity.y += grav_const;
+  if(ob.gravity && ob.state.velocity.y > grav_max){
+    ob.state.velocity.y += grav_const;
   }
 }
 
@@ -49,26 +48,33 @@ export interface state_config{
 }
 
 export class room<T>{
+  //Url to an image to be used for the room background
   background_url: string;
   background: HTMLImageElement;
   objects: obj[] = [];
+  //This object contains particle definitions
   particles:particles = {};
+  //This array is what actually contains the particles
+  //that exists within the room.
   particles_arr: obj[] = [];
   state: T;
   binds:number[] = [];
   game:game<unknown>;
   hud:HUD;
   audio = new audio();
+  //These text nodes exists in the actual room space, rather than
+  //on the hud layer.
   text_nodes:Text[] = [];
   constructor(game:game<unknown>,config:state_config){
     this.game = game;
     for(let c of config.objects){
+      //This handles loading objects from the saved json file associated with each room.
       this.addItemStateConfig(c)
     }
   }
   exportStateConfig(){
     let config:state_config = {objects:[]};
-    for(let o of this.objects){
+    for(let o of this.objects.filter((obj)=>obj.save_to_file)){
         if(!o.parent){
         config.objects.push({
           type:o.constructor.name,
@@ -165,7 +171,7 @@ export class room<T>{
     for(let text_node of this.text_nodes){
       text_node.statef(time);
     }
-    for (let a = 0; a < this.objects.length; a++) {
+    for (let a = 0; a < this.objects.filter((o)=>o.tick_state).length; a++) {
       velocityCollisionCheck(this.objects[a], this.objects);
       this.objects[a].statef(time);
     }

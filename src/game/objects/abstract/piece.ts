@@ -36,6 +36,7 @@ export class piece extends obj{
   params:piece_parameters;
   state:piece_state;
   tags = ["piece"];
+  save_to_file = false;
   static default_params:piece_parameters = {
     side:side.white
   }

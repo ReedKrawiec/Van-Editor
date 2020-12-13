@@ -20,7 +20,7 @@ export function check_all_objects(c: collision_box,objs:obj[],exemption:string[]
   return objs.filter((a)=>(!exemption.some((b)=>a.tags.indexOf(b) !== -1) && a.collidesWithBox(c)));
 }
 
-export function check_all_collisions(c: collision_box,objs:obj[],exemption:string[] = []):obj[]{
+export function check_all_collisions(c: collision_box,objs:obj[],exemption:string[] = []):Array<obj>{
   let matched = [];
   for (let a of objs) {
     if (!exemption.some((b)=>a.tags.indexOf(b) !== -1) && a.collision && a.collidesWithBox(c)) {

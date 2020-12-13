@@ -109,8 +109,8 @@ export class Rocket extends bullet{
         
         let o_state = collider.state as obj_state;
         let velocities = rotation_length(multiplyer * 100, this.angleTowards(collider));
-        o_state.velocity.x += velocities.x;
-        o_state.velocity.y += velocities.y;
+        o_state.velocity.x += velocities.x * time/16;
+        o_state.velocity.y += velocities.y * time/16;
       }
       this.emitParticle("explosion",{x:0,y:0},500,0);
       this.audio.play("explosion",0.2);

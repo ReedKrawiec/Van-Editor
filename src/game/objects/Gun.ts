@@ -20,7 +20,6 @@ export class Gun extends platformer_obj {
     if (this.player) {
       let angle = this.player.angleTowards(this.cursor);
       let rot = rotation_length(50, angle);
-      this.rotation = angle;
       this.state.rotation = angle;
       this.state.position = {
         x: rot.x + this.player.state.position.x,

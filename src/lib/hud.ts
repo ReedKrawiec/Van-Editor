@@ -57,20 +57,20 @@ export class HUD{
 }
 
 export class Text{
-  get_func:HudTextGetFunc;
+  getFunc:HudTextGetFunc;
   state:Text_Node;
-  constructor(a:Text_Node,b:HudTextGetFunc){
-    if(!a.align){
-      a.align = "center";
+  constructor(node:Text_Node,getFunc:HudTextGetFunc){
+    if(!node.align){
+      node.align = "center";
     }
-    this.state = a;
+    this.state = node;
     if(!this.state.text){
       this.state.text = "";
     }
-    this.get_func = b;
+    this.getFunc = getFunc;
   }
   statef(a:number){
-   this.state.text = this.get_func();
+   this.state.text = this.getFunc();
   }
   renderf(a:number):Font{
     let {size,color,font,text,max_width,align} = this.state;

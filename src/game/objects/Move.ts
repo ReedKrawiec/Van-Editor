@@ -18,6 +18,7 @@ export class Move extends obj {
   width = 100;
   render = false;
   layer = 2;
+  save_to_file = false;
   tags = ["move"];
   constructor(state: obj_state) {
     super(state);

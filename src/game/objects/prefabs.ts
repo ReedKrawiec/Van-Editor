@@ -3,6 +3,7 @@ interface prefabs {
   [index:string]:any
 }
 import {Bishop} from "./Bishop";
+import {Board_Label} from "./Board_Label";
 import {box} from "./box";
 import {bullet} from "./bullet";
 import {ControlledPlayer} from "./ControlledPlayer";
@@ -17,9 +18,11 @@ import {Pawn} from "./Pawn";
 import {Player} from "./Player";
 import {Queen} from "./Queen";
 import {Rook} from "./Rook";
+import {Rotator} from "./Rotator";
 import {VertBox} from "./VertBox";
 export let prefabs:prefabs = {
 	Bishop:Bishop,
+	Board_Label:Board_Label,
 	box:box,
 	bullet:bullet,
 	ControlledPlayer:ControlledPlayer,
@@ -34,5 +37,6 @@ export let prefabs:prefabs = {
 	Player:Player,
 	Queen:Queen,
 	Rook:Rook,
+	Rotator:Rotator,
 	VertBox:VertBox,
 }

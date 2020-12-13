@@ -1,4 +1,4 @@
-import {room,room_i} from "../../lib/room";
+import {room,room_i,state_config} from "../../lib/room";
 import {piece} from "../objects/abstract/piece";
 import {Knight} from "../objects/Knight";
 import {Rook} from "../objects/Rook";
@@ -15,6 +15,8 @@ import {Camera} from "../../lib/render";
 import * as json from "./Board.json";
 import { velocityCollisionCheck } from "../../lib/collision";
 import { exec_type, Poll_Mouse } from "../../lib/controls";
+import * as config from "./Board.json";
+let cfig = config as unknown as state_config;
 export enum side{
   white,
   black
@@ -55,7 +57,7 @@ export class Board extends room<board_state>{
   state:board_state;
   background_url="./sprites/board.png";
   constructor(game:game<unknown>){
-    super(game,{objects:[]});
+    super(game,cfig);
     game.state.cameras = [
       new Camera({
         x:0,
@@ -64,7 +66,7 @@ export class Board extends room<board_state>{
           height:GetViewportDimensions().height,
           width:GetViewportDimensions().width
         },
-        scaling:0.75,
+        scaling:0.65,
         debug:false
       },{
         x:0,
@@ -84,6 +86,7 @@ export class Board extends room<board_state>{
       attacked:[],
       dragging:false
     };
+    
     let row2 = [new Rook(state_converter({x:0,y:7},0,1),{side:side.black}),new Knight(state_converter({x:1,y:7},0,1),{side:side.black}),new Bishop(state_converter({x:2,y:7},0,1),{side:side.black}),new Queen(state_converter({x:3,y:7},0,1),{side:side.black}),new King(state_converter({x:4,y:7},0,1),{side:side.black}),new Bishop(state_converter({x:5,y:7},0,1),{side:side.black}),new Knight(state_converter({x:6,y:7},0,1),{side:side.black}),new Rook(state_converter({x:7,y:7},0,1),{side:side.black})];
     let row7 = [new Rook(state_converter({x:0,y:0},0,1),{side:side.white}),new Knight(state_converter({x:1,y:0},0,1),{side:side.white}),new Bishop(state_converter({x:2,y:0},0,1),{side:side.white}),new Queen(state_converter({x:3,y:0},0,1),{side:side.white}),new King(state_converter({x:4,y:0},0,1),{side:side.white}),new Bishop(state_converter({x:5,y:0},0,1),{side:side.white}),new Knight(state_converter({x:6,y:0},0,1),{side:side.white}),new Rook(state_converter({x:7,y:0},0,1),{side:side.white})];
     for(let a = 0;a < row2.length;a++){
@@ -123,6 +126,9 @@ export class Board extends room<board_state>{
     this.bindControl("mouse0down", exec_type.once, () => {
 
       let mouse = Poll_Mouse(g.state.cameras[0]);
+      if(!mouse){
+        return
+      }
       let collisions = g.getRoom().checkCollisions({
         x: mouse.x,
         y: mouse.y,
@@ -272,6 +278,9 @@ export class Board extends room<board_state>{
   statef(a:number){
     if(this.state.selected && this.state.dragging){
       let mouse = Poll_Mouse(g.state.cameras[0]);
+      if(!mouse){
+        return
+      }
       this.state.selected.state.position.x = mouse.x;
       this.state.selected.state.position.y = mouse.y;
     }
