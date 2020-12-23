@@ -88,7 +88,8 @@ interface sprite_args {
   x: number,
   y: number,
   rotation: number,
-  scale:dimensions
+  scale:dimensions,
+  scale_type:scale_type
 }
 
 interface renderer_args {
@@ -102,26 +103,11 @@ export enum render_type {
   rect,
   stroke_rect
 }
-/*
-export const element_render = (r:renderer_args,o:obj<unknown>,time:number) => {
-  let camera = r.camera;
-  let vheight = r.camera.state.dimensions.height / r.camera.state.scaling;
-  let final_x = ((s.x - camera.state.position.x + camera.state.dimensions.width / 2 - s.sprite.sprite_width / 2) * r.camera.state.scaling);
-  let final_y = ((vheight - s.y - camera.state.dimensions.height / 2 - s.sprite.sprite_height / 2 + camera.state.position.y) * r.camera.state.scaling);
-  let height = s.sprite.sprite_height * r.camera.state.scaling;
-  let width = s.sprite.sprite_width * r.camera.state.scaling;
-  if(o.render_type == render_type.text){
 
-  }
-  else if(o.render_type == render_type.sprite){
-
-  }
-  else if(o.render_type == render_type.stroke_rect){
-
-  }
+export enum scale_type{
+  grow,
+  repeat
 }
-*/
-
 
 export const hud_text_renderer = (r: renderer_args, s: TextSetting) => {
   let vheight = GetViewportDimensions().height;
@@ -169,17 +155,55 @@ export const sprite_renderer = (r: renderer_args, s: sprite_args) => {
   r.context.translate(final_x  + (width) / 2, final_y + height / 2)
   let radians = s.rotation * (Math.PI / 180);
   r.context.rotate(radians);
-  r.context.drawImage(
-    s.sprite.sprite_sheet,
-    s.sprite.left,
-    s.sprite.top,
-    s.sprite.sprite_width,
-    s.sprite.sprite_height,
-    -(width ) / 2,
-    -height / 2,
-    width,
-    height
-  )
+  if(s.scale_type == scale_type.grow){
+    r.context.drawImage(
+      s.sprite.sprite_sheet,
+      s.sprite.left,
+      s.sprite.top,
+      s.sprite.sprite_width,
+      s.sprite.sprite_height,
+      -(width ) / 2,
+      -height / 2,
+      width,
+      height
+    )
+  }
+  else if(s.scale_type == scale_type.repeat){
+    let one_width = s.sprite.sprite_width * r.camera.state.scaling;
+    let one_height = s.sprite.sprite_height * r.camera.state.scaling;
+    let total_hor_sprites = width/one_width
+    let total_ver_sprites = height/one_height;
+    if(total_hor_sprites - 1 > 0.0001 || total_ver_sprites - 1 > 0.0001){
+      console.log(total_hor_sprites + " + " + total_ver_sprites)
+    }
+    
+   for(let a = 0;a < total_hor_sprites;a += 1){
+     for(let b = 0;b < total_ver_sprites;b += 1){
+       let new_width = one_width;
+       let new_height = one_height;
+       if((a + 1) * one_width - width > 0.00001){
+         new_width = width % one_width;
+       }
+       if((b + 1) * one_height - height > 0.00001){
+         new_height = height % one_height;
+       }
+       r.context.drawImage(
+        s.sprite.sprite_sheet,
+        s.sprite.left,
+        s.sprite.top,
+        s.sprite.sprite_width,
+        s.sprite.sprite_height,
+        -width/2 + a * one_width,
+        -height/2 + b * one_height,
+        new_width,
+        new_height
+       )
+     }
+
+   } 
+  }
+  
+  
   r.context.restore();
 }
 

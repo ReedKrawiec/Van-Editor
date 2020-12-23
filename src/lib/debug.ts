@@ -765,8 +765,6 @@ export class ${new_name} extends obj{
   tags:Array<string> = [];
   collision = true;
   render = true;
-  rotation = 0;
-  scaling = 1;
   params:${new_name}_parameters;
   static default_params:${new_name}_parameters = {}
   constructor(state:obj_state,params:${new_name}_parameters = ${new_name}.default_params){

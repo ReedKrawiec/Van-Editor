@@ -19,7 +19,7 @@ import {deep} from "../../van";
       height = 100;
       width = 100;
       tags:Array<string> = [];
-      collision = true;
+      collision = false;
       render = false;
       rotation = 0;
       scaling = 1;

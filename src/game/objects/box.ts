@@ -1,6 +1,7 @@
 import {platformer_obj,plat_state} from "./abstract/platformer_obj";
 import {obj_state,position} from "../../lib/state";
 import { exec_type } from "../../lib/controls";
+import { scale_type } from "../../lib/render";
 
 export class box extends platformer_obj{
   sprite_url = "./sprites/box.png"
@@ -9,5 +10,6 @@ export class box extends platformer_obj{
   width = 500;
   gravity = false;
   enemy = false;
-  tags = ["static"]
+  tags = ["static"];
+  scale_type = scale_type.repeat
 }

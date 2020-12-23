@@ -11,9 +11,10 @@ npm run pack && npm run start
 ## Hard
 
 - Networking
+- Path Finding
 
 ## Medium
-
+- 
 - Improve editor UI
 - Resizable editor panels
 - Editor panel tabs
@@ -21,6 +22,8 @@ npm run pack && npm run start
 ## Easy
 
 - Generate new rooms and objects from template files rather than embedded strings
+- Dynamically load game from main.ts file rather than loading from the editor folder
+- Repeating sprites for scaled objects
 
 ## License
 

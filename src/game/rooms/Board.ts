@@ -1,5 +1,5 @@
 import {room,room_i,state_config} from "../../lib/room";
-import {piece} from "../objects/abstract/piece";
+import {piece, piece_type,moves} from "../objects/abstract/piece";
 import {Knight} from "../objects/Knight";
 import {Rook} from "../objects/Rook";
 import {Move} from "../objects/Move";
@@ -42,6 +42,8 @@ function state_converter(pos:position,rotation:number,scaling:number):obj_state{
   }
 }
 
+
+
 export interface board_state{
   turn:side,
   white_board:Array<Array<space_state>>,
@@ -51,7 +53,10 @@ export interface board_state{
   squares:Array<Array<Move>>,
   pieces:Array<piece>,
   attacked:Array<position>,
-  dragging:boolean
+  dragging:boolean,
+  last_move:moves[],
+  before_history:moves[][],
+  after_history:moves[][]
 }
 export class Board extends room<board_state>{
   state:board_state;
@@ -84,7 +89,10 @@ export class Board extends room<board_state>{
       squares:[],
       pieces:[],
       attacked:[],
-      dragging:false
+      dragging:false,
+      last_move:[],
+      before_history:[],
+      after_history:[]
     };
     
     let row2 = [new Rook(state_converter({x:0,y:7},0,1),{side:side.black}),new Knight(state_converter({x:1,y:7},0,1),{side:side.black}),new Bishop(state_converter({x:2,y:7},0,1),{side:side.black}),new Queen(state_converter({x:3,y:7},0,1),{side:side.black}),new King(state_converter({x:4,y:7},0,1),{side:side.black}),new Bishop(state_converter({x:5,y:7},0,1),{side:side.black}),new Knight(state_converter({x:6,y:7},0,1),{side:side.black}),new Rook(state_converter({x:7,y:7},0,1),{side:side.black})];
@@ -122,6 +130,7 @@ export class Board extends room<board_state>{
       }
     }
   }
+  
   registerControls() {
     this.bindControl("mouse0down", exec_type.once, () => {
 
@@ -136,15 +145,18 @@ export class Board extends room<board_state>{
         height: 1
       }, ["move"]);
       if (collisions.length > 0) {
-        if(this.state.turn == (<piece>collisions[0]).state.side){
+        let piece = (<piece>collisions[0]);
+        if(this.state.turn == piece.state.side){
           this.state.dragging = true;
-          (<piece>collisions[0]).select();
+          piece.select();
+          piece.layer = 3;
           this.state.selected_original_position = Object.assign({}, collisions[0].state.position);
         }
       }
     });
     this.bindControl("mouse0up", exec_type.once, () => {
       if (this.state.selected) {
+        this.state.selected.layer = 1;
         let collisions = g.getRoom().checkObjects({
           x:this.state.selected.state.position.x,
           y:this.state.selected.state.position.y,
@@ -244,12 +256,65 @@ export class Board extends room<board_state>{
     }
     return board;
   }
+  async add_piece_history(a:piece){
+    this.state.last_move.push({
+      type:"add",
+      old_position:Object.assign({},a.getCords()),
+      new_position:Object.assign({},a.getCords()),
+      new_piece:a.state.type,
+      side:a.state.side
+    })
+    await this.add_piece(a);
+  }
+  async add_piece_from_type(type:piece_type,position:position,side:side){
+    let piece:piece;
+    let state:obj_state = {
+      position,
+      velocity:{
+        x:0,
+        y:0
+      },
+      rotation:0,
+      scaling:{
+        height:1,
+        width:1
+      }
+    }
+    switch(type){
+      case piece_type.bishop:
+        piece = new Bishop(state,{side})
+        break;  
+      case piece_type.rook:
+        piece = new Rook(state,{side})
+        break;
+      case piece_type.queen:
+        piece = new Queen(state,{side})
+        break;
+      case piece_type.pawn:
+        piece = new Pawn(state,{side});
+        break;
+      case piece_type.knight:
+        piece = new Knight(state,{side});
+        break;
+      case piece_type.king:
+        piece = new King(state,{side});
+        break;
+    }
+    await this.add_piece(piece);
+  }
   async add_piece(a:piece){
     await a.load();
     this.addItem(a);
     this.state.pieces.unshift(a);
   }
   remove_piece(a:piece){
+    this.state.last_move.push({
+      type:"remove",
+      old_position:Object.assign({},a.getCords()),
+      new_position:Object.assign({},a.getCords()),
+      old_piece:a.state.type,
+      side:a.state.side
+    })
     for(let b = 0;b < this.state.pieces.length;b++){
       if(a.id === this.state.pieces[b].id){
         this.state.pieces.splice(b,1);
@@ -278,11 +343,10 @@ export class Board extends room<board_state>{
   statef(a:number){
     if(this.state.selected && this.state.dragging){
       let mouse = Poll_Mouse(g.state.cameras[0]);
-      if(!mouse){
-        return
+      if(mouse){
+        this.state.selected.state.position.x = mouse.x;
+        this.state.selected.state.position.y = mouse.y;
       }
-      this.state.selected.state.position.x = mouse.x;
-      this.state.selected.state.position.y = mouse.y;
     }
     super.statef(a);
   }

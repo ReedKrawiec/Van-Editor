@@ -152,7 +152,7 @@ export class room<T>{
     }
     return check_all_collisions(box,this.objects,exempt);
   }
-  checkObjects(box:collision_box,exempt?:string[],list=this.objects){
+  checkObjects(box:collision_box,exempt?:string[],list=this.objects):obj[]{
     if(DEBUG){
       render_collision_box(box);
     }
@@ -171,9 +171,10 @@ export class room<T>{
     for(let text_node of this.text_nodes){
       text_node.statef(time);
     }
-    for (let a = 0; a < this.objects.filter((o)=>o.tick_state).length; a++) {
-      velocityCollisionCheck(this.objects[a], this.objects);
-      this.objects[a].statef(time);
+    let ticking_objects = this.objects.filter((o)=>o.tick_state);
+    for (let a = 0; a < ticking_objects.length; a++) {
+      velocityCollisionCheck(ticking_objects[a], this.objects);
+      ticking_objects[a].statef(time);
     }
     if(this.game.state.cameras){
       for(let cameras of this.game.state.cameras){

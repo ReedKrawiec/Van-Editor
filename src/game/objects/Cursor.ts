@@ -1,15 +1,20 @@
 import { obj_state, position } from "../../lib/state";
-import { platformer_obj } from "./abstract/platformer_obj";
+import { obj } from "../../lib/object";
 
 interface cursor_params{
   id:string
 }
 
-export class Cursor extends platformer_obj {
+export class Cursor extends obj {
   sprite_url = "./sprites/cursor.png";
   height = 64;
   width = 64;
-  collision = true;
+  collision = false;
   render = true;
+  gravity = false;
   tags = ["Cursor"];
+  statef(t:number){
+    super.statef(t);
+    console.log(this.state.velocity);
+  }
 }

@@ -1,20 +1,14 @@
 export let DEBUG = true;
 export let PAUSED = true;
-import { obj, params } from "./lib/object";
-import { obj_state, position } from "./lib/state";
+import { obj} from "./lib/object";
 import { room } from "./lib/room";
-import { positioned_sprite, sprite } from "./lib/sprite";
 import { collision_box } from "./lib/collision";
-import { sprite_renderer, rect_renderer, stroked_rect_renderer, hud_text_renderer, Camera, text_renderer } from "./lib/render";
-import { HUD } from "./lib/hud";
-import { ExecuteRepeatBinds, debug_binds, btype, exec_type, Poll_Mouse, Bind, held_keys, Unbind } from "./lib/controls";
-import { Distance } from "./lib/math";
+import { sprite_renderer, rect_renderer, stroked_rect_renderer, hud_text_renderer, Camera, text_renderer ,scale_type} from "./lib/render";
+import { ExecuteRepeatBinds, Unbind } from "./lib/controls";
 import { init_click_handler } from "./lib/controls";
-import { debug_state, debug_update_room_list, debug_update_obj_list, debug_statef, debug_setup, debug_update_prefabs, debug_update_properties_element, Debug_hud } from "./lib/debug";
+import { debug_state, debug_update_room_list, debug_update_obj_list,debug_update_prefabs, debug_statef, debug_setup } from "./lib/debug";
 import { rooms as room_list } from "./game/rooms/rooms";
 let { ipcRenderer } = window.require("electron");
-const path = window.require("path");
-let fs = window.require("fs");
 export let project_path = ipcRenderer.sendSync('path-request', 'ping')[0];
 
 let canvas_element: HTMLCanvasElement = document.getElementById("target") as HTMLCanvasElement;
@@ -23,11 +17,6 @@ let context: CanvasRenderingContext2D = canvas_element.getContext("2d");
 
 let screen_width = window.innerWidth;
 let screen_height = window.innerHeight;
-
-let vwidth = canvas_element.width;
-let vheight = canvas_element.height;
-
-import { g } from "./game/main";
 
 
 //How often the game logic loop should run, in milliseconds
@@ -190,7 +179,8 @@ export class game<T>{
         scale: {
           width: 1,
           height: 1
-        }
+        },
+        scale_type:scale_type.grow
       });
       //Array of hitboxes for each item in the room
       let hitboxes: collision_box[] = [];
@@ -208,7 +198,8 @@ export class game<T>{
             x: positioned_sprite.x,
             y: positioned_sprite.y,
             rotation: a.state.rotation,
-            scale: a.state.scaling
+            scale: a.state.scaling,
+            scale_type:a.scale_type
           });
 
 
@@ -240,7 +231,8 @@ export class game<T>{
                 x: positioned_sprite.x,
                 y: positioned_sprite.y,
                 rotation: graphic.state.rotation,
-                scale: graphic.state.scaling
+                scale: graphic.state.scaling,
+                scale_type:graphic.scale_type
               });
             }
           }

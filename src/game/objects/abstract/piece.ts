@@ -5,6 +5,16 @@ import { Unbind, exec_type } from "../../../lib/controls";
 import {position,obj_state} from "../../../lib/state";
 import {g} from "../../main";
 
+export interface moves{
+  type:string,
+  old_position:position,
+  new_position:position,
+  old_piece?:piece_type,
+  new_piece?:piece_type,
+  move_piece?:piece,
+  side:side
+}
+
 export enum side{
   white,
   black
@@ -36,6 +46,7 @@ export class piece extends obj{
   params:piece_parameters;
   state:piece_state;
   tags = ["piece"];
+  tick_state = false;
   save_to_file = false;
   static default_params:piece_parameters = {
     side:side.white
@@ -59,7 +70,20 @@ export class piece extends obj{
     }
     this.params = params;
   }
+  movetoCordsHistory(a:position){
+    let room = g.getRoom() as Board;
+    room.state.last_move.push({
+      type:"move",
+      old_position:Object.assign({},this.getCords()),      
+      new_position:Object.assign({},a),
+      old_piece:this.state.type,
+      new_piece:this.state.type,
+      side:this.state.side
+     })
+    this.movetoCords(a);
+  }
   movetoCords(a:position){
+    let room = g.getRoom() as Board;
     this.state.position.x = a.x * this.width - 350;
     this.state.position.y = a.y * this.height - 350;
   }

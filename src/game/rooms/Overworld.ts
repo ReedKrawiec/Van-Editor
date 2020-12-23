@@ -190,7 +190,7 @@ export class Overworld extends room<overworld_i>{
     }
   }
   statef(time: number) {
-    console.log(time);
+    
     if (!this.state.paused) {
       for (let a = 0; a < this.objects.length; a++) {
         applyGravity(this.objects[a], -1 * time/16, -15);
@@ -214,11 +214,11 @@ export class Overworld extends room<overworld_i>{
         cursor.collision = false;
         cursor.gravity = false;
         let mouse = Poll_Mouse(this.game.state.cameras[0]);
-        if(!mouse){
-          return
+        if(mouse){
+          
+          cursor.state.position.x = mouse.x;
+          cursor.state.position.y = mouse.y;
         }
-        cursor.state.position.x = mouse.x;
-        cursor.state.position.y = mouse.y;
       }
       
     }

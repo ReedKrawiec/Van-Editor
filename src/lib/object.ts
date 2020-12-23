@@ -1,5 +1,5 @@
 import { state_func, obj_state, position, dimensions } from "./state";
-import { render_func, render_type } from "./render";
+import { render_func, render_type ,scale_type} from "./render";
 import { Particle, positioned_sprite, sprite, sprite_gen } from "./sprite";
 import { collision_box } from "./collision";
 import { Unbind, Bind, control_func, exec_type } from "./controls";
@@ -104,6 +104,8 @@ export interface params{
   [index:string]:boolean|string|number
 }
 
+
+
 export abstract class obj{
   //Url to the object's individual sprite, or all of its sprites
   //bundled into a spritesheet
@@ -142,7 +144,9 @@ export abstract class obj{
   layer:number = 1;
   save_to_file:boolean = true;
   tick_state = true;
+  scale_type = scale_type.grow;
   static default_params:unknown = {};
+  opacity:number = 1;
   getState() {
     return this.state;
   }
@@ -363,7 +367,7 @@ export abstract class obj{
           top: 0,
           sprite_width: sprite_width,
           sprite_height: sprite_height,
-          opacity:1
+          opacity:this.opacity
         },
         x: this.state.position.x,
         y: this.state.position.y

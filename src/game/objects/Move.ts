@@ -18,6 +18,7 @@ export class Move extends obj {
   width = 100;
   render = false;
   layer = 2;
+  tick_state = false;
   save_to_file = false;
   tags = ["move"];
   constructor(state: obj_state) {
@@ -45,15 +46,17 @@ export class Move extends obj {
     if (this.render) {
       let room = g.state.current_room as Board;
       room.state.selected.state.position = room.state.selected_original_position;
+      room.state.before_history.push(room.state.last_move);
+      room.state.last_move = [];
       let p = room.get_piece(this.getCords()) as piece[];
       let s = room.state.selected;
       if (s.state.type === piece_type.king && !s.state.has_moved && this.getCords().x === 6) {
         let rooks = room.get_piece({ x: 7, y: s.getCords().y });
-        rooks[0].movetoCords({ x: 5, y: s.getCords().y });
+        rooks[0].movetoCordsHistory({ x: 5, y: s.getCords().y });
       }
       if (s.state.type === piece_type.king && !s.state.has_moved && this.getCords().x === 2) {
         let rooks = room.get_piece({ x: 0, y: s.getCords().y });
-        rooks[0].movetoCords({ x: 3, y: s.getCords().y });
+        rooks[0].movetoCordsHistory({ x: 3, y: s.getCords().y });
       }
       if (s.state.type === piece_type.pawn && !s.state.has_moved && s.state.side === side.white && this.getCords().y === 3) {
         room.state.white_board[this.getCords().x][this.getCords().y - 1].enpassent = true;
@@ -86,7 +89,7 @@ export class Move extends obj {
           }
         }, { side: s.state.side });
         qu.load().then(() => {
-          room.add_piece(qu);
+          room.add_piece_history(qu);
           room.remove_piece(s);
         })
       }
@@ -97,7 +100,7 @@ export class Move extends obj {
         room.change_side(side.white);
       }
       room.clear_attacked();
-      room.state.selected.movetoCords(this.getCords());
+      room.state.selected.movetoCordsHistory(this.getCords());
 
       room.state.attacked = [];
       room.state.selected = undefined;
