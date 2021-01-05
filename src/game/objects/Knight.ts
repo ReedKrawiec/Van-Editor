@@ -1,5 +1,5 @@
 import {piece,side,piece_type,piece_parameters} from "./abstract/piece";
-import {obj_state, position} from "../../lib/state";
+import {obj_state, Vector} from "../../lib/state";
 import {g} from "../main";
 
 export class Knight extends piece{
@@ -10,9 +10,9 @@ export class Knight extends piece{
     });
     this.state.type = piece_type.knight;
   }
-  getAttacking():Array<position>{
+  getAttacking():Array<Vector>{
     let cords = this.getCords();
-    let attacked:Array<position> = [];
+    let attacked:Array<Vector> = [];
     attacked.push({x:cords.x + 1,y:cords.y + 2});
     attacked.push({x:cords.x - 1,y:cords.y + 2});
     attacked.push({x:cords.x + 2,y:cords.y + 1});

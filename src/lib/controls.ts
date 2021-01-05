@@ -3,7 +3,7 @@ import {game,PAUSED,DEBUG, GetScreenDimensions,GetViewportDimensions} from "../v
 import { collision_box } from "./collision";
 import {obj} from "./object";
 import { Camera } from "./render";
-import {position} from "./state";
+import {Vector} from "./state";
 import {debug_state} from "./debug";
 
 interface mousePos{
@@ -329,7 +329,7 @@ let all_binds:Array<bind> = []
 
 let repeat_binds:Array<repeat_bind> = [];
 
-export function Poll_Mouse(camera:Camera,canvas:HTMLCanvasElement = g.state.canvas):position{
+export function Poll_Mouse(camera:Camera,canvas:HTMLCanvasElement = g.state.canvas):Vector{
   let height = GetViewportDimensions().height;
   let wratio = parseFloat(window.getComputedStyle(canvas).width)/GetViewportDimensions().width;
   let vratio = parseFloat(window.getComputedStyle(canvas).height)/GetViewportDimensions().height;

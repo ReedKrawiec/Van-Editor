@@ -12,7 +12,10 @@ function execute(command, callback) {
 
 function compile(){
   return new Promise((resolve,reject)=>{
-    execute('npm run pack', (output) => {
+    let p = path.join(project_path[0],"../../..");
+    let command = `node filegenerator.js ${p} && webpack --config ${path.join(p,"webpack.config.js")} --env.context=${p}`;
+    console.log(command);
+    execute(command, (output) => {
       resolve(output);
     });
   })

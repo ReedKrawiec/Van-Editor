@@ -1,4 +1,4 @@
-import { obj_state, position } from "../../lib/state";
+import { obj_state, Vector } from "../../lib/state";
 import { obj } from "../../lib/object";
 
 interface cursor_params{
@@ -13,8 +13,4 @@ export class Cursor extends obj {
   render = true;
   gravity = false;
   tags = ["Cursor"];
-  statef(t:number){
-    super.statef(t);
-    console.log(this.state.velocity);
-  }
 }

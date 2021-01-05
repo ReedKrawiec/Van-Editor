@@ -2,12 +2,7 @@ export interface state_func<T>{
   (last_time:number,current_state:T):T
 }
 
-export interface velocity{
-  x:number;
-  y:number;
-}
-
-export interface position{
+export interface Vector{
   x:number;
   y:number;
 }
@@ -18,8 +13,8 @@ export interface dimensions{
 }
 
 export interface obj_state{
-  position:position;
-  velocity:velocity;
+  position:Vector;
+  velocity:Vector;
   rotation:number;
   scaling:dimensions;
 }

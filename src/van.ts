@@ -8,8 +8,7 @@ import { ExecuteRepeatBinds, Unbind } from "./lib/controls";
 import { init_click_handler } from "./lib/controls";
 import { debug_state, debug_update_room_list, debug_update_obj_list,debug_update_prefabs, debug_statef, debug_setup } from "./lib/debug";
 import { rooms as room_list } from "./game/rooms/rooms";
-let { ipcRenderer } = window.require("electron");
-export let project_path = ipcRenderer.sendSync('path-request', 'ping')[0];
+
 
 let canvas_element: HTMLCanvasElement = document.getElementById("target") as HTMLCanvasElement;
 let context: CanvasRenderingContext2D = canvas_element.getContext("2d");
@@ -134,6 +133,7 @@ export class game<T>{
     let all_cameras = this.state.cameras;
     let editor_camera_index = -1;
     if (DEBUG) {
+      debug_state.delta_time = delta_time;
       all_cameras = [...all_cameras, debug_state.camera]
       editor_camera_index = all_cameras.length - 1;
       //The editor camera is always the last camera inside the cameras array

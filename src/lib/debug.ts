@@ -1,20 +1,32 @@
 import { obj, params } from "./object";
 import { obj_state } from "./state";
-let { ipcRenderer } = window.require("electron");
 const path = window.require("path");
 let fs = window.require("fs");
 import { prefabs } from "../game/objects/prefabs";
-import { project_path, DEBUG, PAUSED, setPaused, viewport } from "../van";
+import { DEBUG, PAUSED, setPaused, viewport } from "../van";
 import { g } from "../game/main";
 import { rooms as room_list } from "../game/rooms/rooms";
 import { Bind, btype, Poll_Mouse, exec_type, held_keys, debug_binds } from "../lib/controls";
 import { HUD, Text } from "../lib/hud";
 import { Camera } from "../lib/render";
-import { position, dimensions, velocity } from "../lib/state";
-
+import { Vector, dimensions} from "../lib/state";
+let { ipcRenderer } = window.require("electron");
+export let project_path = ipcRenderer.sendSync('path-request', 'ping')[0];
 export class Debug_hud extends HUD {
   setTextElements() {
-    return [new Text({
+    return [
+      new Text({
+        position: {
+          x: 10,
+          y: viewport.height - 24
+        },
+        size: 22,
+        font: "Alata",
+        color: "white",
+        align: "left",
+        scaling: 1
+      }, () => debug_state.delta_time > 0 ? Math.round(1000/debug_state.delta_time) + "" : ""),
+      new Text({
       position: {
         x: 10,
         y: 10
@@ -35,7 +47,41 @@ export class Debug_hud extends HUD {
       color: "white",
       align: "left",
       scaling: 1
-    }, () => `Y:${debug_state.camera.state.position.y.toFixed(0)}`)
+    }, () => `Y:${debug_state.camera.state.position.y.toFixed(0)}`),
+    new Text({
+      position: {
+        x: viewport.width - 10,
+        y: 32
+      },
+      size: 22,
+      font: "Alata",
+      color: "white",
+      align: "right",
+      scaling: 1
+    }, () => {
+      let mouse = Poll_Mouse(debug_state.camera,debug_state.target);
+      if(mouse){
+        return `${mouse.x.toFixed(0)}:X`
+      }
+      return `:X`
+    }),
+    new Text({
+      position: {
+        x: viewport.width - 10,
+        y: 10
+      },
+      size: 22,
+      font: "Alata",
+      color: "white",
+      align: "right",
+      scaling: 1
+    }, () => {
+      let mouse = Poll_Mouse(debug_state.camera,debug_state.target);
+      if(mouse){
+        return `${mouse.y.toFixed(0)}:Y`
+      }
+      return `:Y`
+    }),
     ];
   }
 }
@@ -366,13 +412,14 @@ export interface debug_vars {
   last_clicked: HTMLElement,
   selected_element_initial_scaling: dimensions,
   selected_element: obj,
-  selected_element_offset: position,
+  selected_element_offset: Vector,
   rotation_element: obj,
   selected_properties_element: obj,
-  middle_position: position,
-  click_position: position,
+  middle_position: Vector,
+  click_position: Vector,
   actions_stack: debug_action[],
-  current_action: debug_action
+  current_action: debug_action,
+  delta_time:number
 }
 
 export let debug_state: debug_vars;
@@ -405,6 +452,7 @@ export let debug_setup = () => {
     selected_properties_element: undefined,
     selected_element_initial_scaling: { width: 1, height: 1 },
     actions_stack: [],
+    delta_time:0,
     current_action: undefined
   }
   debug_state.camera.hud = new Debug_hud();
@@ -422,12 +470,7 @@ export let debug_setup = () => {
           return
         }
         debug_state.click_position = mouse;
-        let alL_clicked = g.getRoom().checkObjects({
-          x: mouse.x,
-          y: mouse.y,
-          height: 1,
-          width: 1
-        })
+        let alL_clicked = g.getRoom().checkObjectsPoint(mouse);
         let clicked;
         let filtered = alL_clicked.filter((ele) => ele == debug_state.selected_properties_element)
         if (filtered.length > 0) {
@@ -449,7 +492,7 @@ export let debug_setup = () => {
             debug_state.current_action = {
               element: clicked,
               property: "position",
-              old: JSON.stringify((<obj_state>clicked.state).position),
+              old: JSON.stringify(clicked.state.position),
               new: undefined
             }
           }
@@ -458,8 +501,8 @@ export let debug_setup = () => {
           debug_state.selected_element = clicked;
           debug_state.selected_element_initial_scaling = clicked.state.scaling;
           debug_state.selected_element_offset = {
-            x: mouse.x - (<obj_state>clicked.state).position.x,
-            y: mouse.y - (<obj_state>clicked.state).position.y
+            x: mouse.x - clicked.state.position.x,
+            y: mouse.y - clicked.state.position.y
           }
         }
       }
@@ -526,12 +569,7 @@ export let debug_setup = () => {
         if(!mouse){
           return
         }
-        let clicked = g.getRoom().checkObjects({
-          x: mouse.x,
-          y: mouse.y,
-          height: 1,
-          width: 1
-        })[0]
+        let clicked = g.getRoom().checkObjectsPoint(mouse)[0]
         if (clicked) {
           debug_state.rotation_element = clicked;
           debug_state.current_action = {

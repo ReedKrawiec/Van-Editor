@@ -1,5 +1,5 @@
 import {piece,side,piece_type,piece_parameters} from "./abstract/piece";
-import {obj_state, position} from "../../lib/state";
+import {obj_state, Vector} from "../../lib/state";
 import {Board} from "../rooms/Board";
 import {g} from "../main";
 
@@ -11,7 +11,7 @@ export class King extends piece{
     });
     this.state.type = piece_type.king;
   }
-  check_left_castle(room:Board,cords:position){
+  check_left_castle(room:Board,cords:Vector){
     if(!this.state.has_moved && room.get_piece({x:cords.x - 1,y:cords.y}).length == 0 && room.get_piece({x:cords.x - 2,y:cords.y}).length == 0 && room.get_piece({x:cords.x - 3, y:cords.y}).length == 0){
       
       console.log("ya")
@@ -23,7 +23,7 @@ export class King extends piece{
     }
     return false;
   }
-  check_right_castle(room:Board,cords:position){
+  check_right_castle(room:Board,cords:Vector){
     if(!this.state.has_moved && room.get_piece({x:cords.x + 1,y:cords.y}).length == 0 && room.get_piece({x:cords.x + 2,y:cords.y}).length == 0){
       let rook = room.get_piece({x:cords.x + 3,y:cords.y});
       if(rook.length > 0 && !rook[0].state.has_moved){
@@ -32,10 +32,10 @@ export class King extends piece{
     }
     return false;
   }
-  getAttacking():Array<position>{
+  getAttacking():Array<Vector>{
     let cords = this.getCords();
     let room = g.getRoom() as Board;
-    let attacked:Array<position> = [];
+    let attacked:Array<Vector> = [];
     for(let x = -1;x <= 1; x++){
       for(let y = -1;y <= 1; y++){
         if((x !== 0 || y !== 0) && cords.x + x >= 0 && cords.x + x < 8 && cords.y + y >= 0 && cords.y + y < 8){

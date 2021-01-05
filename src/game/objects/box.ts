@@ -1,5 +1,5 @@
 import {platformer_obj,plat_state} from "./abstract/platformer_obj";
-import {obj_state,position} from "../../lib/state";
+import {obj_state,Vector} from "../../lib/state";
 import { exec_type } from "../../lib/controls";
 import { scale_type } from "../../lib/render";
 

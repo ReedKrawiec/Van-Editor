@@ -1,6 +1,6 @@
 import { gravity_obj,obj } from "./object";
 import { Particle, sprite } from "./sprite";
-import { dimensions, obj_state } from "./state";
+import { dimensions, obj_state, Vector } from "./state";
 import { velocityCollisionCheck,check_collisions,collision_box,check_all_collisions,check_all_objects} from "./collision";
 import {render_collision_box,DEBUG} from "../van";
 import {Bind,control_func, exec_type} from "./controls";
@@ -146,11 +146,37 @@ export class room<T>{
   bindControl(key:string,x:exec_type,func:control_func,interval:number = 1){
     this.binds.push(Bind(key,func,x,interval)); 
   }
-  checkCollisions(box:collision_box,exempt?:string[]):obj[]{
+  checkCollisionsPoint(pos:Vector,exempt?:string[],list = this.objects):obj[]{
+    return this.checkCollisions({x:pos.x,y:pos.y,height:0,width:0},exempt,list);
+  }
+  checkObjectsPoint(pos:Vector,exempt?:string[],list = this.objects):obj[]{
+    return this.checkObjects({x:pos.x,y:pos.y,height:0,width:0},exempt,list);
+  }
+  checkCollisionsPointInclusive(pos:Vector,tags?:string[],list = this.objects):obj[]{
+    return this.checkCollisionsInclusive({x:pos.x,y:pos.y,height:0,width:0},tags,list);
+  }
+  checkObjectsPointInclusive(pos:Vector,tags?:string[],list = this.objects):obj[]{
+    return this.checkObjectsInclusive({x:pos.x,y:pos.y,height:0,width:0},tags,list);
+  }
+  checkCollisionsInclusive(box:collision_box,tags:string[],list=this.objects):obj[]{
     if(DEBUG){
       render_collision_box(box);
     }
-    return check_all_collisions(box,this.objects,exempt);
+    return list.filter(obj=>obj.collision && obj.collidesWithBox(box) && tags.every((val)=>obj.tags.includes(val)));
+    
+  }
+  checkObjectsInclusive(box:collision_box,tags:string[],list=this.objects):obj[]{
+    if(DEBUG){
+      render_collision_box(box);
+    }
+    return list.filter((obj)=>obj.collidesWithBox(box) && tags.every((val)=>obj.tags.includes(val)));
+    
+  }
+  checkCollisions(box:collision_box,exempt?:string[],list=this.objects):obj[]{
+    if(DEBUG){
+      render_collision_box(box);
+    }
+    return check_all_collisions(box,list,exempt);
   }
   checkObjects(box:collision_box,exempt?:string[],list=this.objects):obj[]{
     if(DEBUG){
@@ -202,7 +228,7 @@ export class room<T>{
     }
     return null;
   }
-  getObjByTag(tag:string){
+  getObjByTag(tag:string):obj[]{
     return this.objects.filter((a)=>a.tags.indexOf(tag) > -1);
   }
   renderf(time: number): sprite {

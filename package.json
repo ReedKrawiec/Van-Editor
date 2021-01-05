@@ -5,7 +5,7 @@
   "main": "main.js",
   "scripts": {
     "pack": "node filegenerator.js && webpack",
-    "start": "npm run pack && electron ."
+    "start": "electron ."
   },
   "repository": "https://github.com/electron/electron-quick-start",
   "keywords": [
@@ -18,11 +18,14 @@
   "author": "GitHub",
   "license": "CC0-1.0",
   "devDependencies": {
+    "@types/node": "^7.0.5",
     "electron": "^10.1.5",
     "ts-loader": "^8.0.2",
     "typescript": "^3.9.7",
-    "webpack": "^4.44.1",
-    "webpack-cli": "^3.3.12",
-    "@types/node": "^7.0.5"
+    "webpack-cli": "^3.3.12"
+  },
+  "dependencies": {
+    "astar-typescript": "^1.2.5",
+    "webpack": "^4.44.2"
   }
 }

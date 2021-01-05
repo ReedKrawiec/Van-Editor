@@ -201,8 +201,8 @@ export class Overworld extends room<overworld_i>{
       let cameras = g.state.cameras;
       
       if (player) {        
-        cameras[0].x = player.state.position.x;
-        cameras[0].y = player.state.position.y + (cameras[0].state.dimensions.height/2 - player.height/2);     
+        cameras[0].state.position.x = player.state.position.x;
+        cameras[0].state.position.y = player.state.position.y + (cameras[0].state.dimensions.height/2 - player.height/2);     
       }
       
       if(target){

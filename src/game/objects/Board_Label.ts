@@ -2,7 +2,7 @@
     
     import { Text } from "../../lib/hud";
 import {obj} from "../../lib/object";
-    import { obj_state, position } from "../../lib/state";
+    import { obj_state, Vector } from "../../lib/state";
 import { g} from "../main";
 import {deep} from "../../van";
     

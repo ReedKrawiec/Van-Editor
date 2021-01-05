@@ -1,5 +1,8 @@
 let path = require("path");
 let fs = require("fs");
+const { argv } = require("process");
+
+let p = argv[2];
 
 let pre = `
 interface prefabs {
@@ -15,14 +18,14 @@ let imports = [];
 let exp = ["export let prefabs:prefabs = {"];
 let imports2 = [];
 let exp2 = ["export let rooms:room_dir = {"];
-fs.readdirSync("./src/game/objects").forEach((file) => {
+fs.readdirSync(path.join(p,"./src/game/objects")).forEach((file) => {
   if(file !== "prefabs.ts" && file !=="abstract"){
     let name = file.substr(0,file.length - 3);
     imports.push(`import {${name}} from "./${name}";`)
     exp.push(`\t${name}:${name},`)  
   }
 });
-fs.readdirSync("./src/game/rooms").forEach((dir) => {
+fs.readdirSync(path.join(p,"./src/game/rooms")).forEach((dir) => {
   if(dir.indexOf(".json") === -1){
     if(dir !== "rooms.ts" && dir !=="abstract"){
       let name = dir.substr(0,dir.length - 3);
@@ -31,5 +34,5 @@ fs.readdirSync("./src/game/rooms").forEach((dir) => {
     }
   }
 });
-fs.writeFileSync("src/game/objects/prefabs.ts",pre + imports.join("\n") + "\n" + exp.join("\n") + "\n}")
-fs.writeFileSync("src/game/rooms/rooms.ts",pre2 + imports2.join("\n") + "\n" + exp2.join("\n") + "\n}")
+fs.writeFileSync(path.join(p,"src/game/objects/prefabs.ts"),pre + imports.join("\n") + "\n" + exp.join("\n") + "\n}")
+fs.writeFileSync(path.join(p,"src/game/rooms/rooms.ts"),pre2 + imports2.join("\n") + "\n" + exp2.join("\n") + "\n}")

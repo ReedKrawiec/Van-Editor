@@ -41,7 +41,7 @@ interface camera_properties {
 export class Camera {
   state: camera_state;
   hud: HUD;
-  constructor(props:camera_properties, v: viewport) {
+  constructor(props:camera_properties, v: viewport, hud:HUD = undefined) {
     this.state = {
       scaling:props.scaling,
       position: {
@@ -56,22 +56,9 @@ export class Camera {
         height: v.height * props.dimensions.height
       },
       debug:props.debug,
-      hud:undefined
+      hud
     }
   }
-  set x(x: number) {
-    this.state.position.x = x;
-  }
-  set y(y: number) {
-    this.state.position.y = y
-  }
-  get x() {
-    return this.state.position.x;
-  }
-  get y() {
-    return this.state.position.y;
-  }
-
 }
 
 export interface render_func {
@@ -173,26 +160,22 @@ export const sprite_renderer = (r: renderer_args, s: sprite_args) => {
     let one_height = s.sprite.sprite_height * r.camera.state.scaling;
     let total_hor_sprites = width/one_width
     let total_ver_sprites = height/one_height;
-    if(total_hor_sprites - 1 > 0.0001 || total_ver_sprites - 1 > 0.0001){
-      console.log(total_hor_sprites + " + " + total_ver_sprites)
-    }
-    
    for(let a = 0;a < total_hor_sprites;a += 1){
      for(let b = 0;b < total_ver_sprites;b += 1){
        let new_width = one_width;
        let new_height = one_height;
-       if((a + 1) * one_width - width > 0.00001){
+       if((a + 1) * one_width - width > 0){
          new_width = width % one_width;
        }
-       if((b + 1) * one_height - height > 0.00001){
+       if((b + 1) * one_height - height > 0){
          new_height = height % one_height;
        }
        r.context.drawImage(
         s.sprite.sprite_sheet,
         s.sprite.left,
         s.sprite.top,
-        s.sprite.sprite_width,
-        s.sprite.sprite_height,
+        new_width / (r.camera.state.scaling),
+        new_height / (r.camera.state.scaling),
         -width/2 + a * one_width,
         -height/2 + b * one_height,
         new_width,

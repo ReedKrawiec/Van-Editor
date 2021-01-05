@@ -1,4 +1,4 @@
-import { state_func, obj_state, position, dimensions } from "./state";
+import { state_func, obj_state, Vector, dimensions } from "./state";
 import { render_func, render_type ,scale_type} from "./render";
 import { Particle, positioned_sprite, sprite, sprite_gen } from "./sprite";
 import { collision_box } from "./collision";
@@ -104,7 +104,10 @@ export interface params{
   [index:string]:boolean|string|number
 }
 
-
+export interface bounding_box{
+  bottom_left:Vector,
+  top_right:Vector
+}
 
 export abstract class obj{
   //Url to the object's individual sprite, or all of its sprites
@@ -195,23 +198,32 @@ export abstract class obj{
   combinedObjects():obj[]{
     return [this];
   }
+  getBoundingBox():bounding_box{
+    let coll_box = this.getFullCollisionBox();
+    return {
+      top_right:{
+        x:coll_box.x + coll_box.width/2,
+        y:coll_box.y + coll_box.height/2
+      },
+      bottom_left:{
+        x:coll_box.x - coll_box.width/2,
+        y:coll_box.y - coll_box.height/2
+      }
+    }
+  }
   //Distance from one object to another.
   distance(target:obj):number{
     return Distance(this.state.position,target.state.position);
   }
+  applyForce(vel:Vector){
+    this.state.velocity.x += vel.x;
+    this.state.velocity.y += vel.y;
+  }
   angleTowards(a: obj): number {
     return this.angleTowardsPoint(a.state.position);
   }
-  angleTowardsPoint(target:position):number{
-    if (this.state.position.x < target.x && this.state.position.y > target.y
-      || (this.state.position.x < target.x && this.state.position.y < target.y)) {
-      return 90 - Math.atan((target.y - this.state.position.y) / (target.x - this.state.position.x)) * 180 / Math.PI
-    }
-    if (this.state.position.x > target.x && this.state.position.y < target.y
-      || this.state.position.x > target.x && this.state.position.y > target.y) {
-      return 270 - Math.atan((target.y - this.state.position.y) / (target.x - this.state.position.x)) * 180 / Math.PI
-    }
-    return 0;
+  angleTowardsPoint(target:Vector):number{
+    return 90 - Math.atan2((target.y - this.state.position.y),(target.x - this.state.position.x)) * 180/Math.PI;
   }
   bindControl(key: string, x: exec_type, func: control_func, interval = 1) {
     this.binds.push(Bind(key, func, x, interval, this));
@@ -314,10 +326,10 @@ export abstract class obj{
   }
   //The particle must be registered in the room's registerParticles method 
   //The name parameter should correspond to the key of a particle
-  emitParticle(name:string,offset:position,lifetime:number,range:number){
+  emitParticle(name:string,offset:Vector,lifetime:number,range:number){
     let room = this.game.getRoom();
     let st = this.state as unknown as obj_state;
-    let final_position:position = {
+    let final_position:Vector = {
       x:st.position.x + offset.x,
       y:st.position.y + offset.y
     }
@@ -393,8 +405,8 @@ export abstract class composite_obj extends obj{
   registered = false;
   collision = false;
   statics:composite_static[] = [];
-  constructor(pos:obj_state){
-    super(pos);
+  constructor(pos:obj_state,params = composite_obj.default_params){
+    super(pos,params);
   }
   load(){
     return Promise.all([...this.objects.map((a)=>a.load()),...this.statics.map(a=>a.obj.load())]);

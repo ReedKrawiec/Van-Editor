@@ -169,11 +169,15 @@
   
 </body>
 <script>
+  let path = window.require("path")
   const { ipcRenderer} = require('electron');
   document.getElementById("compile_button").addEventListener("click",()=>{
     ipcRenderer.sendSync('compile-prompt', 'ping')
   })
-
+  let main_path = ipcRenderer.sendSync("path-request")[0];
+  let script = document.createElement("script");
+  script.setAttribute("src",path.join(main_path,"../../../target/van.js"));
+  console.log(script);
+  document.body.appendChild(script);
 </script>
- <script type="module" src="./van.js"></script>
 </html>

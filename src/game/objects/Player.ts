@@ -1,4 +1,4 @@
-import { obj_state, position } from "../../lib/state";
+import { obj_state, Vector } from "../../lib/state";
 import { composite_obj } from "../../lib/object";
 import { Player_Params } from "./Goomba";
 import { ControlledPlayer } from "./ControlledPlayer";

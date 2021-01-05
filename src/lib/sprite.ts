@@ -1,5 +1,5 @@
 import { obj } from "./object";
-import { obj_state, position, dimensions} from "./state";
+import { obj_state, Vector, dimensions} from "./state";
 import {getRandInt} from "./math";
 import {particle_entry} from "./room";
 

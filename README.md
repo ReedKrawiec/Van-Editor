@@ -11,19 +11,22 @@ npm run pack && npm run start
 ## Hard
 
 - Networking
-- Path Finding
+- Unit Tests
+- More efficient collision detection (Split game space into blocks)
+- Rotation affects hitbox
 
 ## Medium
-- 
+
 - Improve editor UI
 - Resizable editor panels
 - Editor panel tabs
+- Path finding improvements
+- 
 
 ## Easy
 
 - Generate new rooms and objects from template files rather than embedded strings
-- Dynamically load game from main.ts file rather than loading from the editor folder
-- Repeating sprites for scaled objects
+- Fix creating objects and rooms in other folders having incorrect import paths
 
 ## License
 

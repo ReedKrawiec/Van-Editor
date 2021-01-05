@@ -1,13 +1,17 @@
 const path = require('path');
-const glob = require("glob")
-module.exports = {
+const process = require("process");
+
+
+
+module.exports = (env)=> ({
   mode: "development",
+  context: path.resolve(env.context),
   devtool: "inline-source-map",
   entry: {
-    main: "./src/game/main.ts"
+    main:  path.resolve(env.context,"./src/game/main.ts")
   },
   output: {
-    path: path.resolve(__dirname, './target'),
+    path: path.resolve(env.context,"target"),
     filename: "van.js" // <--- Will be compiled to this single file
   },
   resolve: {
@@ -24,4 +28,4 @@ module.exports = {
       }
     ]
   }
-};
+});

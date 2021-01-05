@@ -1,5 +1,5 @@
 import {piece,side,piece_type,piece_parameters} from "./abstract/piece";
-import {obj_state, position} from "../../lib/state";
+import {obj_state, Vector} from "../../lib/state";
 import {Board} from "../rooms/Board";
 import {g} from "../main";
 
@@ -11,8 +11,8 @@ export class Pawn extends piece{
     });
     this.state.type = piece_type.pawn;
   }
-  getAttacking():Array<position>{
-    let attacked:Array<position> = [];
+  getAttacking():Array<Vector>{
+    let attacked:Array<Vector> = [];
     let cords = this.getCords();
     let room = g.getRoom() as Board;
     if(this.state.side == side.white){
@@ -22,8 +22,8 @@ export class Pawn extends piece{
           attacked.push({x:cords.x,y:cords.y + 2});
         }
       }
-      let left_cords:position = {x:cords.x- 1,y:cords.y + 1};
-      let right_cords:position = {x:cords.x+ 1,y:cords.y + 1}; 
+      let left_cords:Vector = {x:cords.x- 1,y:cords.y + 1};
+      let right_cords:Vector = {x:cords.x+ 1,y:cords.y + 1}; 
       let left = room.get_piece(left_cords);
       let right = room.get_piece(right_cords);
       let left_en = room.get_meta(left_cords,side.black);
@@ -42,8 +42,8 @@ export class Pawn extends piece{
           attacked.push({x:cords.x,y:cords.y - 2});
         }
       }
-      let left_cords:position = {x:cords.x - 1,y:cords.y - 1};
-      let right_cords:position = {x:cords.x+ 1,y:cords.y - 1};
+      let left_cords:Vector = {x:cords.x - 1,y:cords.y - 1};
+      let right_cords:Vector = {x:cords.x+ 1,y:cords.y - 1};
       let left = room.get_piece(left_cords);
       let right = room.get_piece(right_cords);
       let left_en = room.get_meta(left_cords,side.white);

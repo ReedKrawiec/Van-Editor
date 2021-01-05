@@ -1,5 +1,5 @@
 import {piece,side,piece_type,piece_parameters} from "./abstract/piece";
-import {obj_state, position} from "../../lib/state";
+import {obj_state, Vector} from "../../lib/state";
 import {Board} from "../rooms/Board";
 import {g} from "../main";
 
@@ -11,7 +11,7 @@ export class Rook extends piece{
     });
     this.state.type = piece_type.rook;
   }
-  getAttacking():Array<position>{
+  getAttacking():Array<Vector>{
     return this.attackCardinal();
   }
 }

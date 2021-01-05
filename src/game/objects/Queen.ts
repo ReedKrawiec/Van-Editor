@@ -1,5 +1,5 @@
 import {piece,side,piece_type,piece_parameters} from "./abstract/piece";
-import {obj_state, position} from "../../lib/state";
+import {obj_state, Vector} from "../../lib/state";
 
 export class Queen extends piece{
   sprite_url = "./sprites/queen.png"
@@ -9,7 +9,7 @@ export class Queen extends piece{
     });
     this.state.type = piece_type.queen;
   }
-  getAttacking():Array<position>{
+  getAttacking():Array<Vector>{
     return this.attackDiagonal().concat(this.attackCardinal());
   }
 }

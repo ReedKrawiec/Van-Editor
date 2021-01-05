@@ -2,13 +2,13 @@ import {obj} from "../../../lib/object";
 import {positioned_sprite, sprite,sprite_gen} from "../../../lib/sprite";
 import {board_state, Board} from "../../rooms/Board";
 import { Unbind, exec_type } from "../../../lib/controls";
-import {position,obj_state} from "../../../lib/state";
+import {Vector,obj_state} from "../../../lib/state";
 import {g} from "../../main";
 
 export interface moves{
   type:string,
-  old_position:position,
-  new_position:position,
+  old_position:Vector,
+  new_position:Vector,
   old_piece?:piece_type,
   new_piece?:piece_type,
   move_piece?:piece,
@@ -70,7 +70,7 @@ export class piece extends obj{
     }
     this.params = params;
   }
-  movetoCordsHistory(a:position){
+  movetoCordsHistory(a:Vector){
     let room = g.getRoom() as Board;
     room.state.last_move.push({
       type:"move",
@@ -82,15 +82,15 @@ export class piece extends obj{
      })
     this.movetoCords(a);
   }
-  movetoCords(a:position){
+  movetoCords(a:Vector){
     let room = g.getRoom() as Board;
     this.state.position.x = a.x * this.width - 350;
     this.state.position.y = a.y * this.height - 350;
   }
-  getCords():position{
+  getCords():Vector{
     return {x:Math.round((this.state.position.x+350)/100),y:Math.round((this.state.position.y + 350)/100)};
   }
-  getAttacking():Array<position>{
+  getAttacking():Array<Vector>{
     return [];
   }
   renderf(t:number):positioned_sprite{
@@ -113,7 +113,7 @@ export class piece extends obj{
   attackDiagonal(){
     let cords = this.getCords();
     let room = g.getRoom() as Board;
-    let attacked:Array<position> = [];
+    let attacked:Array<Vector> = [];
     for(let a = 1;a < 8;a++){
       if(cords.x - a >= 0 && cords.x - a < 8 && cords.y - a >= 0 && cords.x - a < 8){
         let pieces = room.get_piece({x:cords.x - a,y:cords.y - a});
@@ -163,7 +163,7 @@ export class piece extends obj{
   attackCardinal(){
     let cords = this.getCords();
     let room = g.getRoom() as Board;
-    let attacked:Array<position> = [];
+    let attacked:Array<Vector> = [];
     for(let a = cords.x - 1;a >= 0;a--){
       let pieces = room.get_piece({x:a,y:cords.y});
       if(pieces.length === 0 || pieces[0].state.side !== this.state.side){

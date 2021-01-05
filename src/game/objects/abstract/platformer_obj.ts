@@ -1,5 +1,5 @@
 import {composite_obj, gravity_obj} from "../../../lib/object";
-import {obj_state,position} from "../../../lib/state";
+import {obj_state,Vector} from "../../../lib/state";
 
 export interface plat_state extends obj_state{
   health:number  

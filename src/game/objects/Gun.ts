@@ -1,4 +1,4 @@
-import {position, obj_state} from "../../lib/state";
+import {Vector, obj_state} from "../../lib/state";
 import { rotation_length } from "../../lib/object";
 import { platformer_obj } from "./abstract/platformer_obj";
 import { g } from "../main";

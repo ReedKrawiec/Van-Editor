@@ -1,7 +1,7 @@
 
 
 import { obj } from "../../lib/object";
-import { obj_state, position } from "../../lib/state";
+import { obj_state, Vector } from "../../lib/state";
 import { box } from "./box";
 
 

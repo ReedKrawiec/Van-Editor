@@ -3,7 +3,7 @@ import { Board, side } from "../rooms/Board";
 import { piece, piece_type } from "./abstract/piece";
 import { Queen } from "./Queen";
 import { exec_type } from "../../lib/controls";
-import { obj_state, position } from "../../lib/state";
+import { obj_state, Vector } from "../../lib/state";
 import { g } from "../main";
 interface move_state extends obj_state {
   position: {
@@ -39,7 +39,7 @@ export class Move extends obj {
       }
     }
   }
-  getCords(): position {
+  getCords(): Vector {
     return { x: Math.floor((this.state.position.x + 350) / 100), y: Math.floor((this.state.position.y + 350) / 100) };
   }
   drop(){

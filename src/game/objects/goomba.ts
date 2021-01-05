@@ -1,4 +1,4 @@
-import { velocity, obj_state, state_func,position} from "../../lib/state";
+import { Vector, obj_state, state_func} from "../../lib/state";
 import { sprite, sprite_gen } from "../../lib/sprite";
 import { obj } from "../../lib/object";
 import { platformer_obj, platformer_obj_composite, plat_state } from "./abstract/platformer_obj";
@@ -8,6 +8,7 @@ import { Bind } from "../../lib/controls";
 import {Text_Node,Text} from "../../lib/hud";
 import { Overworld } from "../rooms/Overworld";
 import { g } from "../main";
+import { scale_type } from "../../lib/render";
 
 export enum direction {
   left,
@@ -39,6 +40,7 @@ export class Goomba extends platformer_obj{
   width = 149;
   tags = ["dummy"]
   collision = true;
+  layer = 2;
   health_text: Text;
   state:goomba_state;
   constructor(state:obj_state,parameters:goomba_params = Goomba.default_params) {

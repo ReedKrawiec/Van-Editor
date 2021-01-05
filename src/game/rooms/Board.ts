@@ -10,7 +10,7 @@ import { King } from "../objects/King";
 import { Pawn } from "../objects/Pawn";
 import {game,GetViewportDimensions } from "../../van";
 import {g} from "../main";
-import {obj_state, position, room_state} from "../../lib/state";
+import {obj_state, Vector, room_state} from "../../lib/state";
 import {Camera} from "../../lib/render";
 import * as json from "./Board.json";
 import { velocityCollisionCheck } from "../../lib/collision";
@@ -27,7 +27,7 @@ interface space_state{
   attacked:boolean
 }
 
-function state_converter(pos:position,rotation:number,scaling:number):obj_state{
+function state_converter(pos:Vector,rotation:number,scaling:number):obj_state{
   return {
     position:pos,
     velocity:{
@@ -49,10 +49,10 @@ export interface board_state{
   white_board:Array<Array<space_state>>,
   black_board:Array<Array<space_state>>
   selected:piece,
-  selected_original_position:position,
+  selected_original_position:Vector,
   squares:Array<Array<Move>>,
   pieces:Array<piece>,
-  attacked:Array<position>,
+  attacked:Array<Vector>,
   dragging:boolean,
   last_move:moves[],
   before_history:moves[][],
@@ -173,7 +173,7 @@ export class Board extends room<board_state>{
       }
     })
   }
-  get_meta(a: position, s: side) {
+  get_meta(a: Vector, s: side) {
     if (a.x >= 0 && a.x < 8 && a.y >= 0 && a.y < 8){
       if(s === side.white){
         return this.state.white_board[a.x][a.y];
@@ -266,7 +266,7 @@ export class Board extends room<board_state>{
     })
     await this.add_piece(a);
   }
-  async add_piece_from_type(type:piece_type,position:position,side:side){
+  async add_piece_from_type(type:piece_type,position:Vector,side:side){
     let piece:piece;
     let state:obj_state = {
       position,
@@ -322,7 +322,7 @@ export class Board extends room<board_state>{
     }
     a.delete();
   }
-  get_piece(a:position):Array<piece>{
+  get_piece(a:Vector):Array<piece>{
     return (this.checkCollisions({
       x:a.x * 100 - 350,
       y:a.y * 100 - 350,
@@ -335,7 +335,7 @@ export class Board extends room<board_state>{
       this.state.squares[a.x][a.y].render = false;
     }
   }
-  attack(x:Array<position>){
+  attack(x:Array<Vector>){
     for(let a of x){
       this.state.squares[a.x][a.y].render = true;
     }

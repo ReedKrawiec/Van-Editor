@@ -1,4 +1,4 @@
-import {velocity,obj_state,room_state} from "../lib/state";
+import {Vector,obj_state,room_state} from "../lib/state";
 import {game,GetViewportDimensions,viewport} from "../van";
 import {Board, side} from "../game/rooms/Board";
 import { piece } from "./objects/abstract/piece";

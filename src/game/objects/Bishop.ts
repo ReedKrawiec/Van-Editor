@@ -1,5 +1,5 @@
 import {piece,side,piece_type,piece_parameters} from "./abstract/piece";
-import {obj_state, position} from "../../lib/state";
+import {obj_state, Vector} from "../../lib/state";
 
 export class Bishop extends piece{
   sprite_url = "./sprites/bishop.png"
@@ -9,7 +9,7 @@ export class Bishop extends piece{
     });
     this.state.type = piece_type.bishop;
   }
-  getAttacking():Array<position>{
+  getAttacking():Array<Vector>{
     return this.attackDiagonal();
   }
 }

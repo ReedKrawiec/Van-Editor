@@ -195,10 +195,6 @@ export class Underworld extends room<overworld_i>{
       let cursor = this.getObjByTag("Cursor")[0] as Cursor;
       let cameras = g.state.cameras;
       
-      if (player) {        
-        cameras[0].x = player.state.position.x;
-        cameras[0].y = player.state.position.y + (cameras[0].state.dimensions.height/2 - player.height/2);     
-      }
       
       if(target){
         cameras[1].state.position.x = target.state.position.x;

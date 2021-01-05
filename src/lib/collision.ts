@@ -16,6 +16,31 @@ enum direction{
   down
 }
 
+export function getEncompassingBox(objects:obj[]):collision_box{
+  let first_object = objects[0].getBoundingBox();
+  let max_y = first_object.top_right.y;
+  let max_x = first_object.top_right.x;
+  let min_y = first_object.bottom_left.y;
+  let min_x = first_object.bottom_left.x;
+  for(let a = 1; a < objects.length;a++){
+    let object = objects[a].getBoundingBox();
+    if(object.top_right.y > max_y)
+      max_y = object.top_right.y;
+    if(object.top_right.x > max_x)
+      max_x = object.top_right.x;
+    if(object.bottom_left.y < min_y)
+      min_y = object.bottom_left.y;
+    if(object.bottom_left.x < min_x)
+      min_x = object.bottom_left.x;
+  }
+  return {
+    x:min_x + (max_x - min_x)/2,
+    y:min_y + (max_y - min_y)/2,
+    height:max_y - min_y,
+    width:max_x - min_x
+  }
+}
+
 export function check_all_objects(c: collision_box,objs:obj[],exemption:string[] = []):obj[]{
   return objs.filter((a)=>(!exemption.some((b)=>a.tags.indexOf(b) !== -1) && a.collidesWithBox(c)));
 }
