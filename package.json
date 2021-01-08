@@ -26,6 +26,6 @@
   },
   "dependencies": {
     "astar-typescript": "^1.2.5",
-    "webpack": "^4.44.2"
+    "webpack": "^4.45.0"
   }
 }
