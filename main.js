@@ -10,10 +10,22 @@ function execute(command, callback) {
   });
 };
 
-function compile(){
+function compile(env){
   return new Promise((resolve,reject)=>{
     let p = path.join(project_path[0],"../../..");
-    let command = `node filegenerator.js ${p} && webpack --config ${path.join(p,"webpack.config.js")} --env.context=${p}`;
+    let command = `node filegenerator.js ${p} && webpack --define process.env.NODE_ENV='\"dev\"' --config ${path.join(p,"webpack.config.js")} --env.context=${p} --env.target=target`;
+    console.log(command);
+    execute(command, (output) => {
+      resolve(output);
+    });
+  })
+}
+
+
+function build(env){
+  return new Promise((resolve,reject)=>{
+    let p = path.join(project_path[0],"../../..");
+    let command = `node filegenerator.js ${p} && webpack --define process.env.NODE_ENV='\"production\"' --config ${path.join(p,"webpack.config.js")} --env.context=${p} --env.target=build`;
     console.log(command);
     execute(command, (output) => {
       resolve(output);
@@ -68,6 +80,12 @@ function createWindow () {
     let output = await compile();
     console.log(output);
     editor.reload();
+    event.returnValue = "yep";
+  })
+  ipcMain.on('build-prompt', async (event, arg) => {
+    console.log("building");
+    let output = await build();
+    console.log(output);
     event.returnValue = "yep";
   })
   ipcMain.on('object-path-request', (event, arg) => {

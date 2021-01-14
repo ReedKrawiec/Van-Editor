@@ -111,6 +111,7 @@
       <button id="compile_button">RECOMPILE</button>
       <button id="new_object_button">New Object</button>
       <button id="new_room_button">New Room</button>
+      <button id="production_button">Production Build</button>
     </div>
     <div class="row fill">
       <div id="prefab_target" class="scroll fill">
@@ -172,7 +173,10 @@
   let path = window.require("path")
   const { ipcRenderer} = require('electron');
   document.getElementById("compile_button").addEventListener("click",()=>{
-    ipcRenderer.sendSync('compile-prompt', 'ping')
+    ipcRenderer.sendSync('compile-prompt', 'dev')
+  })
+  document.getElementById("production_button").addEventListener("click",()=>{
+    ipcRenderer.sendSync("build-prompt","production");
   })
   let main_path = ipcRenderer.sendSync("path-request")[0];
   let script = document.createElement("script");

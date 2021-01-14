@@ -28,6 +28,7 @@ export interface nav_mesh{
 
 export class Pathing_Room<T> extends room<T>{
   nav_node_diameter = 50;
+  nav_padding = 0;
   nav_mesh: nav_mesh;
   nav_recalculation_interval = 5000;
   floor_tag:string;
@@ -55,9 +56,19 @@ export class Pathing_Room<T> extends room<T>{
           width: this.nav_node_diameter
         }
         for(let floor of floors){
+          let old_hbox = floor.hitbox;
+          let new_width = (floor.width * floor.state.scaling.width - 2 * this.nav_padding)/floor.state.scaling.width
+          let new_height = (floor.height * floor.state.scaling.height - 2 * this.nav_padding)/floor.state.scaling.height
+          floor.hitbox = {
+            x_offset:0,
+            y_offset:0,
+            width:new_width > 0 ? new_width : 0,
+            height:new_height > 0 ? new_height : 0
+          }
           if(floor.collidesWithBox(small_col_box) && room.checkCollisions(small_col_box,[],colliders).length == 0){
             mesh[a][b] = 0;
           }
+          floor.hitbox = old_hbox;
         }
       }
     };

@@ -720,6 +720,7 @@ export let debug_setup = () => {
       debug_state.last_clicked = e.target;
     }
   })
+  let production_button = document.getElementById("production_button");
   let pause_button = document.getElementById("pause_button")
   pause_button.addEventListener("click", (e) => {
     setPaused(!PAUSED);
