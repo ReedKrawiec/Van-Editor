@@ -3,6 +3,7 @@ const {app, BrowserWindow, dialog} = require('electron')
 const path = require('path')
 const exec = require('child_process').exec;
 const { ipcMain ,ipcRenderer} = require('electron')
+const fs = require('fs-extra')
 
 function execute(command, callback) {
   exec(command, (error, stdout, stderr) => { 
@@ -27,7 +28,13 @@ function build(env){
     let p = path.join(project_path[0],"../../..");
     let command = `node filegenerator.js ${p} && webpack --define process.env.NODE_ENV='\"production\"' --config ${path.join(p,"webpack.config.js")} --env.context=${p} --env.target=build`;
     console.log(command);
+    
+    let root = path.join(project_path[0],"..");
+    let target_dir = path.join(root,"..","..","build")
     execute(command, (output) => {
+      fs.copySync(path.join(root,"sprites"),path.join(target_dir,"sprites"));
+      if(fs.existsSync(path.join(root,"sounds")))
+        fs.copySync(path.join(root,"sounds"),path.join(target_dir,"sounds"));
       resolve(output);
     });
   })
@@ -55,6 +62,7 @@ function createWindow () {
   })
   if(editor){
     editor.close();
+    project_path = undefined;
     ipcMain.removeAllListeners();
   };
   editor = mainWindow;
@@ -72,6 +80,9 @@ function createWindow () {
     )
     //ipcRenderer.sendSync('project_path', project_path);
   }
+  ipcMain.on('open-project',(event,arg)=>{
+    createWindow();
+  })
   ipcMain.on('path-request', (event, arg) => {
     event.returnValue = project_path;
   })

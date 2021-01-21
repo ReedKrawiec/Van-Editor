@@ -6,9 +6,16 @@
   <link rel="shortcut icon" href="#">
   <title>Van</title>
   <link href="https://fonts.googleapis.com/css2?family=Alata&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@100;300;400&display=swap" rel="stylesheet">
   <style>
+    *{
+      box-sizing: border-box;
+      font-family: 'Noto Sans JP', sans-serif;
+    }
     html{
-      transform: transale3d(0,0,0)
+      transform: transale3d(0,0,0);
+      
     }
     body{
       overflow: hidden;
@@ -19,8 +26,11 @@
       justify-content: center;
       flex-direction: row;
     }
-    #target{
-      /*cursor:none;*/
+    button{
+      padding: 5px;
+      margin: 2px;
+      cursor:pointer;
+      font-family: 'Noto Sans JP', sans-serif;
     }
     .column{
       display:flex;
@@ -30,31 +40,39 @@
     }
     .row {
       display: flex;
-      align-items: flex-start;
-      justify-content: center;
+      align-items: center;
+      justify-content: flex-start;
       flex-direction: row;
+      width: 100%;
     }
     p{
-      width: 880px;
       color: white;
       font-size: 3em;
       padding: 0;
       margin: 0;
       font-family:roboto;
-      margin-bottom:40px;
+      margin-bottom:10px;
     }
     .stretch{
       width:100vw;
       height:auto;
     }
     .scroll{
-      overflow:scroll;
+      overflow:auto;
+    }
+    .list{
+      border-left: solid 2px white;
+      padding-left: 2px;
     }
     .prefab_box{
-      margin:20px;
-      height: 200px;
-      width: 200px;
+      height: 100px;
+      width: 100px;
+      margin: 10px;
       overflow: hidden;
+      padding: 10px;
+      border: solid 2px #333f40;
+      cursor: pointer;
+      font-size: .5em;
     }
     .fill{
       height:100%;
@@ -65,6 +83,12 @@
       width:33%;
       flex-wrap: wrap;
       font-size:.5em;
+      padding: 30px;
+      justify-content: flex-start;
+      align-content: flex-start;
+    }
+    #prefab_target img{
+      height:100%;
     }
     #objects_list{
       width:10%;
@@ -82,11 +106,13 @@
       width:10%;
       display:flex;
       flex-direction: column;
+
     }
     .room_list_item{
       font-size:.75em;
       width:auto;
       margin:.1em;
+      cursor:pointer;
     }
     input{
       z-index: 999999;
@@ -95,30 +121,36 @@
       font-size:.75em;
       width:auto;
       margin:.1em;
+      cursor: pointer;
+    }
+    .canvas{
+      width:50%;
+      max-height:100%;
     }
   </style>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@900&display=swap" rel="stylesheet">
 </head>
 <body class="stretch column">
   <!--<p>Basic 2D Demo</p>-->
-  <div class = "row" style="height:600px">
-    <canvas height="600" width="960" id="debug_target" ></canvas>
-    <canvas height="600" width="960" id="target" ></canvas>
+  <div class = "row" style="height:50%;align-items:center;">
+    <canvas class="canvas" height="600" width="960" id="debug_target" ></canvas>
+    <canvas class="canvas" height="600" width="960" id="target" ></canvas>
   </div>
-  <div class="column fill" style="height:calc(100vh - 600px)">
-    <div class="row" style="height:10vh">
-      <button id="pause_button">UNPAUSE</button>
-      <button id="compile_button">RECOMPILE</button>
+  <div class="column fill" style="height:50%">
+    <div class="row" style="height:5vh;padding: 10px;justify-content: center;">
+      <button id="open_button">Open Project</button>
       <button id="new_object_button">New Object</button>
       <button id="new_room_button">New Room</button>
       <button id="production_button">Production Build</button>
+      <button id="compile_button">Recompile</button>
+      <button id="pause_button">UNPAUSE</button>
     </div>
-    <div class="row fill">
+    <div class="row" style="height: 45vh;">
       <div id="prefab_target" class="scroll fill">
   
       </div>
-      <div id="objects_list" class="fill scroll">
-
+      <div id="objects_list" class="fill scroll list">
+        
       </div>
       <div id="properties_target" class="fill">
         <p id="obj_name">obj_name</p>
@@ -162,7 +194,7 @@
           </p>
         </div>
       </div>
-      <div id="room_list" class="fill scroll">
+      <div id="room_list" class="fill scroll list">
 
       </div>
     </div>
@@ -177,6 +209,9 @@
   })
   document.getElementById("production_button").addEventListener("click",()=>{
     ipcRenderer.sendSync("build-prompt","production");
+  })
+  document.getElementById("open_button").addEventListener("click",()=>{
+    ipcRenderer.sendSync("open-project","");
   })
   let main_path = ipcRenderer.sendSync("path-request")[0];
   let script = document.createElement("script");
