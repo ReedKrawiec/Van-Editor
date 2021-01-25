@@ -17,6 +17,5 @@
     "node_modules"
   ],
   "files":[
-    "src/game/main.ts"
   ]
 }
