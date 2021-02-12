@@ -1,0 +1,16 @@
+{
+  "name": "van-game",
+  "version": "1.0.0",
+  "description": "",
+  "main": "webpack.config.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Reed Krawiec <reedkrawiec@gmail.com> (https://reedkrawiec.github.io/)",
+  "license": "ISC",
+  "dependencies": {
+    "ts-loader": "^8.0.9",
+    "typescript": "^3.9.7",
+    "webpack": "^4.44.2"
+  }
+}

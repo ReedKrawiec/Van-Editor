@@ -16,7 +16,9 @@ function compile(env){
     let p = path.join(project_path[0],"../../..");
     let command = `node filegenerator.js ${p} && webpack --define process.env.NODE_ENV='\"dev\"' --config ${path.join(p,"webpack.config.js")} --env.context=${p} --env.target=target`;
     console.log(command);
+    log_outputs.push(command);
     execute(command, (output) => {
+      log_outputs.push(output);
       resolve(output);
     });
   })
@@ -31,19 +33,36 @@ function build(env){
     
     let root = path.join(project_path[0],"..");
     let target_dir = path.join(root,"..","..","build")
+    log_outputs.push(command);
     execute(command, (output) => {
       fs.copySync(path.join(root,"sprites"),path.join(target_dir,"sprites"));
       if(fs.existsSync(path.join(root,"sounds")))
         fs.copySync(path.join(root,"sounds"),path.join(target_dir,"sounds"));
+      log_outputs.push(output);
       resolve(output);
     });
   })
 }
 
+function create_project(p){
+  return new Promise((resolve,reject)=>{
+    p = p[0];
+    fs.copySync("./template",p);
+    let cwd = process.cwd();
+    process.chdir(p);
+    execute("npm install",(output)=>{
+      process.chdir(cwd);
+      log_outputs.push(output);
+      resolve(output);
+    })
+  })
+  
+}
 
 
 let editor;
 let project_path;
+let log_outputs = [];
 // call the function
 
 
@@ -62,7 +81,6 @@ function createWindow () {
   })
   if(editor){
     editor.close();
-    project_path = undefined;
     ipcMain.removeAllListeners();
   };
   editor = mainWindow;
@@ -70,17 +88,14 @@ function createWindow () {
   mainWindow.webContents.openDevTools();
   // and load the index.html of the app.
   mainWindow.loadFile('target/index.html')
-  if(!project_path){
+  ipcMain.on('open-project',(event,arg)=>{
     project_path = dialog.showOpenDialogSync(mainWindow,{
       title:"Open package.json",
+      properties:["openFile"],
       filters:[
         {name:"main.ts",extensions:["ts"]}
       ]
-     }
-    )
-    //ipcRenderer.sendSync('project_path', project_path);
-  }
-  ipcMain.on('open-project',(event,arg)=>{
+     });
     createWindow();
   })
   ipcMain.on('path-request', (event, arg) => {
@@ -91,13 +106,25 @@ function createWindow () {
     let output = await compile();
     console.log(output);
     editor.reload();
-    event.returnValue = "yep";
+    event.returnValue = output;
   })
   ipcMain.on('build-prompt', async (event, arg) => {
     console.log("building");
     let output = await build();
     console.log(output);
-    event.returnValue = "yep";
+    event.returnValue = output;
+  })
+  ipcMain.on('create-project-prompt', async (event, arg) => {
+    console.log("creating project");
+    log_outputs.push("Creating a new project. This may take a while.");
+    let path = dialog.showOpenDialogSync(mainWindow,{
+      title:"Select game folder",
+      properties:["openDirectory"],
+     });
+     if(path[0]){
+      let output = await create_project(path);
+      event.returnValue = output;
+     }
   })
   ipcMain.on('object-path-request', (event, arg) => {
     let defau = path.join(path.parse(project_path[0]).dir,arg)
@@ -108,8 +135,10 @@ function createWindow () {
         {name:"Typescript file",extensions:["ts"]}
       ]
     });
-    console.log(prompt);
     event.returnValue = prompt; 
+  })
+  ipcMain.on('logs-request', (event, arg) => {
+    event.returnValue = log_outputs;
   })
   // Open the DevTools.
   // mainWindow.webContents.openDevTools()

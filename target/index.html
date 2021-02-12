@@ -8,6 +8,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Alata&display=swap" rel="stylesheet">
   <link rel="preconnect" href="https://fonts.gstatic.com">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@100;300;400&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com">
+	<link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
   <style>
     *{
       box-sizing: border-box;
@@ -127,21 +129,52 @@
       width:50%;
       max-height:100%;
     }
+    #canvas_container{
+      height: 45vh;
+      align-items: center;
+      width: 100%;
+      max-width: calc(45vh * 16/9 * 2);
+    }
+    #logs_container{
+      height: 45vh;
+      white-space: pre-line;
+      font-size: .2em;
+      width: 100%;
+      flex-direction: column;
+      align-items: flex-start;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+    .log_entry{
+      margin-left: 20px;
+      padding-bottom: 10px;
+      color: #f7f7f7;
+      width: 100%;
+      border-bottom: solid 2px #f7f7f7;
+    }
+    .hidden{
+      display:none;
+    }
   </style>
   <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@900&display=swap" rel="stylesheet">
 </head>
 <body class="stretch column">
   <!--<p>Basic 2D Demo</p>-->
-  <div class = "row" style="height:50%;align-items:center;">
-    <canvas class="canvas" height="600" width="960" id="debug_target" ></canvas>
+  <div class="row" style="height:5vh;padding: 10px">
+    <button id="new_project_button">New Project</button>
+    <button id="open_button">Open Project</button>
+    <button id="new_object_button">New Object</button>
+    <button id="new_room_button">New Room</button>
+    <button id="production_button">Production Build</button>
+    <button id="logs_button">Toggle Logs</button>
+  </div>
+  <div id="canvas_container" class = "row" >
+    <canvas class="canvas" height="600" width="960" id="debug_target"></canvas>
     <canvas class="canvas" height="600" width="960" id="target" ></canvas>
   </div>
+  <div id="logs_container" class="row hidden"></div>
   <div class="column fill" style="height:50%">
     <div class="row" style="height:5vh;padding: 10px;justify-content: center;">
-      <button id="open_button">Open Project</button>
-      <button id="new_object_button">New Object</button>
-      <button id="new_room_button">New Room</button>
-      <button id="production_button">Production Build</button>
       <button id="compile_button">Recompile</button>
       <button id="pause_button">UNPAUSE</button>
     </div>
@@ -202,21 +235,54 @@
   
 </body>
 <script>
+  
   let path = window.require("path")
   const { ipcRenderer} = require('electron');
+  
+  let canvas_container = document.getElementById("canvas_container");
+  let logs_container = document.getElementById("logs_container");
+  
+  function debugLog(input){
+    let para = document.createElement("p");
+    para.classList.add("log_entry");
+    para.appendChild(document.createTextNode(input));
+    logs_container.appendChild(para)
+  }
+
+  document.getElementById("logs_button").addEventListener("click",()=>{
+    canvas_container.classList.toggle("hidden");
+    logs_container.classList.toggle("hidden");
+  })
   document.getElementById("compile_button").addEventListener("click",()=>{
-    ipcRenderer.sendSync('compile-prompt', 'dev')
+    let output = ipcRenderer.sendSync('compile-prompt', 'dev');
+    console.log(output);
   })
   document.getElementById("production_button").addEventListener("click",()=>{
-    ipcRenderer.sendSync("build-prompt","production");
+    let output = ipcRenderer.sendSync("build-prompt","production");
+    console.log(output);
   })
   document.getElementById("open_button").addEventListener("click",()=>{
     ipcRenderer.sendSync("open-project","");
   })
-  let main_path = ipcRenderer.sendSync("path-request")[0];
-  let script = document.createElement("script");
-  script.setAttribute("src",path.join(main_path,"../../../target/van.js"));
-  console.log(script);
-  document.body.appendChild(script);
+  document.getElementById("new_project_button").addEventListener("click",()=>{
+    logs_container.classList.remove("hidden");
+    canvas_container.classList.add("hidden");
+    debugLog("Creating a new project. This may take a while.")
+    setTimeout(()=>{
+      let output = ipcRenderer.sendSync("create-project-prompt","");
+      debugLog(output)
+    },10)
+    
+  })
+  let main_path = ipcRenderer.sendSync("path-request");
+  let logs = ipcRenderer.sendSync("logs-request");
+  for(let log of logs){
+    debugLog(log);
+  }
+  if(main_path){
+    let script = document.createElement("script");
+    script.setAttribute("src",path.join(main_path[0],"../../../target/van.js"));
+    document.body.appendChild(script);    
+  }
 </script>
 </html>
