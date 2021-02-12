@@ -126,8 +126,6 @@ export const hud_text_renderer = (r: renderer_args, s: TextSetting) => {
 export const text_renderer = (r:renderer_args,s:TextSetting) => {
   let camera = r.camera;
   let vheight = r.camera.state.dimensions.height;
-  let width = r.context.measureText(s.font.text).width * r.camera.state.scaling;
-  let height = s.font.size * 1.2 * r.camera.state.scaling;
   let final_x = ((s.x - camera.state.position.x + camera.state.dimensions.width * (1/r.camera.state.scaling) / 2) * r.camera.state.scaling);
   let final_y = ((vheight - s.y * camera.state.scaling - camera.state.dimensions.height/2 + camera.state.position.y * camera.state.scaling));
   r.context.font = `${s.font.size * r.camera.state.scaling}px ${s.font.font}`;

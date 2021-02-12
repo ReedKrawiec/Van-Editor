@@ -83,6 +83,10 @@ function createWindow () {
     editor.close();
     ipcMain.removeAllListeners();
   };
+  if(project_path){
+    log_outputs.push("Loading: " + project_path)
+  }
+  
   editor = mainWindow;
   mainWindow.maximize();
   mainWindow.webContents.openDevTools();

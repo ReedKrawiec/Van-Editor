@@ -7,6 +7,7 @@ import {audio} from "./audio";
 import {DEBUG, copy, game} from "../van";
 import { Vec } from "./math";
 import {root_path,path} from "../lib/debug"; 
+import {Text} from "./hud";
 
 interface obj_i<T> {
   statef: state_func<T>,
@@ -153,6 +154,7 @@ export abstract class obj{
   static default_params:unknown = {};
   proximity_boxes:Set<Vector> = new Set();
   opacity:number;
+  text_nodes:Text[] = [];
   getState() {
     return this.state;
   }
@@ -334,6 +336,9 @@ export abstract class obj{
 
   }
   statef(time:number){
+    for(let node of this.text_nodes){
+      node.statef(time);
+    }
   }
   delete() {
     for (let a of this.binds) {
