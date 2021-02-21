@@ -1,5 +1,7 @@
 # Van Editor
 
+![Preview](https://i.gyazo.com/3165afb4cad5a751f2dba312e468999a.png)
+
 ## To Start
 
 ```bash
