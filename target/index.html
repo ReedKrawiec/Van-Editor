@@ -186,7 +186,7 @@
         
       </div>
       <div id="properties_target" class="fill">
-        <p id="obj_name">obj_name</p>
+        <p id="obj_name">No Object Selected</p>
         <p id="obj_position">
           <span>Position:</span>
           <input id="pos_x" value="0" type="number"/> / <input id="pos_y" value="0" type="number"/>
@@ -203,6 +203,16 @@
           <span>Scaling:</span>
           <input id="sca_x" value="0" type="number"/> / <input id="sca_y" value="0" type="number"/>
         </p>
+        <p id="layer_p">
+          <span>Layer:</span>
+          <input id="layer" type="number"/>
+        </p>
+        <p id="tags_p">
+          <span>Tags:</span>
+          <input id="tags" type="text" />
+        </p>
+        <div id="params_list">
+        </div>
         <p id="render_p">
           <span>Render:</span>
           <input id="render" type="checkbox"/>
@@ -212,20 +222,6 @@
           <input id="collision" type="checkbox"/>
         </p>
         <button id="delete_element">DELETE</button>
-        <div id="params_list">
-          <p>
-            <span>Param1:</span>
-            <input id="param1" type="text"/>
-          </p>
-          <p>
-            <span>Param2:</span>
-            <input id="param2" type="number"/>
-          </p>
-          <p>
-            <span>Param3:</span>
-            <input id="param3" type="checkbox"/>
-          </p>
-        </div>
       </div>
       <div id="room_list" class="fill scroll list">
 
