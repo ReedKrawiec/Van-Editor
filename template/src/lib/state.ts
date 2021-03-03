@@ -14,9 +14,9 @@ export interface dimensions{
 
 export interface obj_state{
   position:Vector;
-  velocity:Vector;
-  rotation:number;
-  scaling:dimensions;
+  velocity?:Vector;
+  rotation?:number;
+  scaling?:dimensions;
 }
 
 export interface room_state{

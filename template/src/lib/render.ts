@@ -4,6 +4,7 @@ import { obj } from "./object";
 import { dimensions, obj_state, Vector } from "./state";
 import { Text_Node, TextSetting,HUD,Text } from "./hud";
 import {positioned_sprite} from "./sprite"
+import { Vec,rotation_length,angle_towards } from "./math";
 
 interface camera_state {
   scaling: number,
@@ -17,7 +18,12 @@ interface camera_state {
   },
   viewport: viewport,
   debug:boolean,
-  hud:HUD  
+  hud:HUD,
+  target_pos:Vector,
+  start_pos:Vector,
+  easing_time:number,
+  current_time:number,
+  speed:number
 }
 
 interface viewport {
@@ -35,7 +41,8 @@ interface camera_properties {
     width:number
   }
   scaling:number,
-  debug:boolean
+  
+  debug?:boolean
 }
 
 export class Camera {
@@ -56,9 +63,39 @@ export class Camera {
         height: v.height * props.dimensions.height
       },
       debug:props.debug,
-      hud
+      hud,
+      target_pos:undefined,
+      start_pos:undefined,
+      easing_time:0,
+      current_time:0,
+      speed:0
     }
     this.hud = hud;
+  }
+  statef(delta_time:number){
+    
+    if(this.state.target_pos){
+      let t = this.state.current_time/this.state.easing_time;
+      let distance = Vec.distance(this.state.position,this.state.target_pos);
+      let coeff;
+      if(t <= 0.5){
+        coeff = 2 * t * t;
+      }
+      else{
+        t -= 0.5;
+        coeff = 2 * t * (1 - t) + 0.5;
+      } 
+      let angle = angle_towards(this.state.target_pos,this.state.position);
+      let velocity = rotation_length(2 * this.state.speed * delta_time,angle);
+      velocity = Vec.scalar_mult(velocity,coeff);
+      this.state.position = Vec.add(this.state.position,velocity);
+      this.state.current_time += delta_time;
+      if(this.state.current_time > this.state.easing_time){
+        this.state.position = Vec.from(this.state.target_pos);
+        this.state.target_pos = undefined;
+      }
+    }
+    
   }
   set x(x: number) {
     this.state.position.x = x;
@@ -71,6 +108,14 @@ export class Camera {
   }
   get y() {
     return this.state.position.y;
+  }
+  moveTo(pos:Vector,time:number){
+    
+    this.state.speed = Vec.distance(this.state.position,pos)/time;
+    this.state.target_pos = pos;
+    this.state.start_pos = Vec.from(this.state.position);
+    this.state.easing_time = time;
+    this.state.current_time = 0;
   }
 
 }

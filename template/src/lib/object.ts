@@ -5,7 +5,7 @@ import { collision_box } from "./collision";
 import { Unbind, Bind, control_func, exec_type } from "./controls";
 import {audio} from "./audio";
 import {DEBUG, copy, game} from "../van";
-import { Vec } from "./math";
+import { Vec,rotation_length,angle_towards } from "./math";
 import {root_path,path} from "../lib/debug"; 
 import {Text} from "./hud";
 
@@ -23,16 +23,7 @@ export function getId(a: obj[], id: string): obj {
   return undefined;
 }
 
-//Finds the side lengths of a triangle if given the  angle (in degrees)
-//along with the length of the hypotenuse
-export function rotation_length(length: number, degree: number) {
-  let a_len = length * Math.sin(degree * Math.PI / 180);
-  let b_len = length * Math.cos(degree * Math.PI / 180);
-  return {
-    x: a_len,
-    y: b_len
-  }
-}
+
 
 //This counter tracks the global number of objects created so far
 //an object's id (if not overwritten) will be a unique integer, which
@@ -111,6 +102,10 @@ export interface bounding_box{
   top_right:Vector
 }
 
+interface cache_entries{
+  [index:string]:any
+}
+
 export abstract class obj{
   //Url to the object's individual sprite, or all of its sprites
   //bundled into a spritesheet
@@ -155,6 +150,7 @@ export abstract class obj{
   proximity_boxes:Set<Vector> = new Set();
   opacity:number;
   text_nodes:Text[] = [];
+  cache_entries:cache_entries = {};
   getState() {
     return this.state;
   }
@@ -243,6 +239,15 @@ export abstract class obj{
     //Creates a copy of the passed in initial state to avoid 
     //Updating the saved state of the room
     this.state = JSON.parse(JSON.stringify(state));
+    if(!state.velocity){
+      this.state.velocity = Vec.create(0,0);
+    }
+    if(!state.scaling){
+      this.state.scaling = {height:1,width:1};
+    }
+    if(!state.rotation){
+      this.state.rotation = 0;
+    }
     this.state = new Proxy(this.state,{
       "set": (target, prop, reciever: unknown) => {
         if (prop == "position") {
@@ -275,6 +280,9 @@ export abstract class obj{
     this.state.position = position_proxy(this.state.position); 
     this.state.scaling = scaling_proxy(this.state.scaling);
     this.params = params;
+  }
+  getRoom(){
+    return this.game.getRoom();
   }
   load() {
     let _this = this;
@@ -387,6 +395,12 @@ export abstract class obj{
   //within the composite obect.
   getAllCollisionBoxes():collision_box[]{
     return [this.getFullCollisionBox()]
+  }
+  cache(key:string,value?:any,){
+    if(!this.cache_entries[key]){
+      this.cache_entries[key] = value;
+    }
+    return this.cache_entries[key];
   }
   //Checks to see if an object actually collides with the provided box.
   //A box represents an area within the game space

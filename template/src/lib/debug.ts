@@ -93,6 +93,19 @@ export class Debug_hud extends HUD {
       }
       return `:Y`
     }),
+    new Text({
+      position: {
+        x: viewport.width - 10,
+        y: viewport.height - 24
+      },
+      size: 22,
+      font: "Alata",
+      color: "white",
+      align: "right",
+      scaling: 1
+    }, () => {
+      return `${g.state.current_room.constructor.name}.ts`
+    })
     ];
   }
 }
@@ -156,7 +169,9 @@ interface properties_element {
   sca_x: HTMLInputElement,
   sca_y: HTMLInputElement,
   render: HTMLInputElement,
-  collision: HTMLInputElement
+  collision: HTMLInputElement,
+  tags:HTMLInputElement,
+  layer:HTMLInputElement
 }
 let properties_elements: properties_element = undefined;
 if (DEBUG) {
@@ -169,7 +184,9 @@ if (DEBUG) {
     sca_x: (<HTMLInputElement>document.getElementById("sca_x")),
     sca_y: (<HTMLInputElement>document.getElementById("sca_y")),
     render: (<HTMLInputElement>document.getElementById("render")),
-    collision: (<HTMLInputElement>document.getElementById("collision"))
+    collision: (<HTMLInputElement>document.getElementById("collision")),
+    tags: (<HTMLInputElement>document.getElementById("tags")),
+    layer:(<HTMLInputElement>document.getElementById("layer"))
   }
 
   let inputs = document.getElementsByTagName("input");
@@ -263,6 +280,14 @@ if (DEBUG) {
     let ele = debug_state.selected_properties_element;
     ele.collision = properties_elements.collision.checked;
   })
+  properties_elements.tags.addEventListener("input", (e) => {
+    let ele = debug_state.selected_properties_element;
+    ele.tags = properties_elements.tags.value.split(",");
+  })
+  properties_elements.layer.addEventListener("input", (e) => {
+    let ele = debug_state.selected_properties_element;
+    ele.layer = parseInt(properties_elements.layer.value);
+  })
   document.getElementById("delete_element").addEventListener("click", (e) => {
     let ele = debug_state.selected_properties_element;
     ele.delete();
@@ -280,8 +305,10 @@ export function debug_update_properties_element() {
     properties_elements.rot.value = "" + ele.state.rotation.toFixed(2);
     properties_elements.sca_x.value = "" + ele.state.scaling.width.toFixed(2);
     properties_elements.sca_y.value = "" + ele.state.scaling.height.toFixed(2);
+    properties_elements.tags.value = "" + ele.tags.join(",");
     properties_elements.render.checked = ele.render;
     properties_elements.collision.checked = ele.collision;
+    properties_elements.layer.value = "" + ele.layer;
     let list = document.getElementById("params_list");
     list.textContent = '';
     for (let k of Object.keys(ele.params)) {
@@ -299,8 +326,9 @@ export function debug_update_properties_element() {
       else if (typeof (<params>ele.params)[k] === "string") {
         input.setAttribute("type", "text");
       }
+
       input.setAttribute("id", k)
-      input.setAttribute("value", (<params>ele.params)[k] + "");
+      input.setAttribute("value", (JSON.stringify((<params>ele.params)[k])));
       input.addEventListener("click", (e) => {
         input.focus();
       })
@@ -317,7 +345,13 @@ export function debug_update_properties_element() {
           (<params>ele.params)[k] = false;
         }
         else {
-          (<params>ele.params)[k] = val;
+          try{
+            let parsed = JSON.parse(val);
+            (<params>ele.params)[k] = JSON.parse(val);
+          }
+          catch(e){
+            
+          }
         }
       })
       p.appendChild(span);

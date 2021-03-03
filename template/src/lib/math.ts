@@ -8,7 +8,25 @@ interface Vec_func{
   (a:number):number
 }
 
+export function angle_towards(target1:Vector,target2:Vector):number{
+  return 90 - Math.atan2((target1.y - target2.y),(target1.x - target2.x)) * 180/Math.PI;
+}
+
+//Finds the side lengths of a triangle if given the  angle (in degrees)
+//along with the length of the hypotenuse
+export function rotation_length(length: number, degree: number) {
+  let a_len = length * Math.sin(degree * Math.PI / 180);
+  let b_len = length * Math.cos(degree * Math.PI / 180);
+  return {
+    x: a_len,
+    y: b_len
+  }
+}
+
 export class Vec{
+  static from(a:Vector){
+    return Vec.create(a.x,a.y);
+  }
   static add(a:Vector,b:Vector):Vector{
     return {x:a.x+b.x,y:a.y+b.y};
   }

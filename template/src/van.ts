@@ -1,15 +1,15 @@
 export let DEBUG = process.env.NODE_ENV === 'dev';
 export let PAUSED = process.env.NODE_ENV === 'dev';
 import { obj } from "./lib/object";
-import { room } from "./lib/room";
+import { p2p, room,p2p_room } from "./lib/room";
 import { collision_box } from "./lib/collision";
 import { sprite_renderer, rect_renderer, stroked_rect_renderer, hud_text_renderer, Camera, text_renderer, scale_type, line, line_renderer, canvas_renderer } from "./lib/render";
 import { ExecuteRepeatBinds, Unbind } from "./lib/controls";
-import { init_click_handler } from "./lib/controls";
 import { debug_state, debug_update_room_list, debug_update_obj_list, debug_update_prefabs, debug_statef, debug_setup } from "./lib/debug";
 import { positioned_sprite } from "lib/sprite";
 import { rooms as room_list } from "./game/rooms/rooms";
 import { Vec } from "lib/math";
+import Peer from 'peerjs';
 
 
 
@@ -87,7 +87,7 @@ interface game_state<T> {
   context: CanvasRenderingContext2D,
   current_room: room<unknown>,
   cameras: Array<Camera>,
-  canvas: HTMLCanvasElement,
+  canvases: HTMLCanvasElement[],
   globals: T
 }
 
@@ -110,7 +110,7 @@ export class game<T>{
   isRendering = false;
   constructor(ctx: CanvasRenderingContext2D, init_state: T) {
     this.state = {
-      canvas: canvas_element,
+      canvases: [canvas_element],
       logic: undefined,
       context: ctx,
       cameras: [
@@ -124,8 +124,10 @@ export class game<T>{
     this.static_context = this.static_canvas.getContext("2d");
     //DEBUG determines whether the game is running within the editor
     if (DEBUG) {
+
       //Sets up some global debug state and the editor keybindings
       debug_setup();
+      this.state.canvases.push(debug_state.target);
       //Initializes a separate logic loop solely for the editor
       //This separation allows for the editor to interact with the environment while
       //the actual room's state loop is paused.
@@ -137,13 +139,13 @@ export class game<T>{
       }, 16.66)
     }
     //Creates a onclick function on the window that handles element onclick functions
-    init_click_handler(this);
+    //init_click_handler(this);
   }
   render(t: number) {
     //t is current render time
     let delta_time = t - last_render_time
     last_render_time = t;
-    let all_cameras = this.state.cameras;
+    let all_cameras = [...this.state.cameras,...this.state.current_room.cameras];
     let editor_camera_index = -1;
     if (DEBUG) {
       debug_state.render_delta_time = delta_time;
@@ -215,7 +217,8 @@ export class game<T>{
       })
       //Array of hitboxes for each item in the room
       let hitboxes: collision_box[] = [];
-      for (let a of camera_colliders.filter((b) => b.render && !b.static).sort((a, b) => (a.layer - b.layer))) {
+      camera_colliders = camera_colliders.filter((b) => b.render && !b.static).sort((a, b) => (a.layer - b.layer))
+      for (let a of camera_colliders) {
         let rendered = a.renderTrack(t);
 
         //Objects can return either a sprite, or an array of sprites to simplify the API
@@ -316,6 +319,7 @@ export class game<T>{
           rect_renderer(this.offscreen_context, { width: 5, height: 5 }, coll.x, coll.y, "skyblue", 10, camera);
           stroked_rect_renderer(this.offscreen_context, coll, coll.x, coll.y, "blue", 1, camera);
         }
+
         stroked_rect_renderer(this.offscreen_context, { width: this.state.current_room.proximity_map.length, height: this.state.current_room.proximity_map.length }, 0, 0, "purple", 10, camera);
       }
       //Separate canvas for the editor camera
@@ -342,11 +346,15 @@ export class game<T>{
       if (!PAUSED) {
 
         let time_since = new_time.getTime() - last_time.getTime();
-
-        if (this.state.current_room) {
-          this.state.current_room.statef(time_since);
-          if (this.state.current_room.hud) {
-            this.state.current_room.hud.statef(time_since);
+        let room = this.state.current_room;
+        if (room) {
+          room.statef(time_since);
+          if(this.state.cameras){
+            for(let cameras of this.state.cameras){
+              if(cameras.hud){
+                cameras.hud.statef(time_since);
+              } 
+            } 
           }
         }
       }
@@ -362,14 +370,16 @@ export class game<T>{
     //room list is a object that contains each room's class,
     //with the room's name as the key for class
     //This object is populated at compile time
-    this.state.cameras = [];
+    let loaded_room = false;
     for (let a of Object.keys(room_list)) {
       if (a == x) {
         //this isn't particularly type-safe.
         let new_room = <room<{}>>new room_list[a](this)
         await this.loadRoom(new_room);
+        return;
       }
     }
+    throw new Error("Attempted to load non-existing room.");
   }
   redrawStatics() {
     let room_length = this.state.current_room.proximity_map.length;
@@ -454,4 +464,74 @@ export class game<T>{
     }
 
   }
+}
+
+export enum peer_connection{
+  child,
+  host
+}
+
+export class peer_to_peer_game<T> extends game<T>{
+  hosting_peer:Peer;
+  hosting_connections:Peer.DataConnection[] = [];
+  peer_host:Peer.DataConnection;
+  type:peer_connection;
+  constructor(ctx: CanvasRenderingContext2D, init_state: T){
+    super(ctx, init_state);
+    this.hosting_peer = new Peer();
+  }
+  connect(id:string){
+    const conn = this.hosting_peer.connect(id);
+    this.peer_host = conn;
+    this.type = peer_connection.child;
+    conn.on("open", () => {
+      conn.send(JSON.stringify({type:"connection",recieved:"success"}));
+    })
+    conn.on("data", (data) => {
+      let {type,recieved} = JSON.parse(data);
+      this.recieve_from_host(type,recieved)
+    })
+  }
+  host(){
+    this.type = peer_connection.host;
+    this.hosting_peer.on("connection", (connection) => {
+      this.hosting_connections.push(connection);
+      let id = this.hosting_connections.length - 1;
+      connection.on("data",(data) => {
+        let {type,recieved} = JSON.parse(data);
+        this.recieve_from_peer(id,type,recieved)
+      })      
+    })
+  }
+  send_to_peer(id:number,type:string,data:string){
+    this.hosting_connections[id].send(JSON.stringify({type,data}));
+  }
+  send_to_all_peers(type:string,data:string){
+    for(let conn of this.hosting_connections){
+      conn.send(JSON.stringify({type,recieved:data}));
+    }
+  }
+  send_to_host(type:string,data:string){
+    this.peer_host.send(JSON.stringify({type,recieved:data}));
+  }
+  recieve_from_peer(id:number,type:string,data:string){
+    (this.state.current_room as p2p_room).parse_packet(type,data,id);
+  }
+  recieve_from_host(type:string,data:string){
+    switch(type){
+      case "change_room":
+        this.loadRoomString(data)
+    }
+    if(this.state.current_room){
+      (this.state.current_room as p2p_room).parse_packet(type,data,undefined);
+    }
+  }
+  async loadRoomString(x:string){
+    this.send_to_all_peers("change_room",x);
+    let result = await super.loadRoomString(x);
+    if(this.type == peer_connection.child){
+      this.send_to_host("finished_change_room","success");
+    }
+    return result;
+  }  
 }

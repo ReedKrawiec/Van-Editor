@@ -29,6 +29,7 @@ interface keyBinds{
   [key:string]: Array<control_func>
 }
 let target = document.getElementById("target");
+/*
 export function init_click_handler(game:game<unknown>){
   window.addEventListener("click",(e)=>{
     
@@ -73,50 +74,62 @@ export function init_click_handler(game:game<unknown>){
     }  
   })
 }
+*/
 
+let was_valid:boolean = false;
 
 window.addEventListener("mousedown", (e) => {
   e.preventDefault();
-  
-  let d:bind[];
-  if(DEBUG){
-    if(debug_state.last_clicked && debug_state.last_clicked.id == "debug_target"){
+
+  let d: bind[];
+
+  function within_Canvas(canvas: HTMLCanvasElement) {
+    let wratio = parseFloat(window.getComputedStyle(canvas).width) / GetViewportDimensions().width;
+    let vratio = parseFloat(window.getComputedStyle(canvas).height) / GetViewportDimensions().height;
+    let bounds = canvas.getBoundingClientRect();
+    if (x > bounds.left && x < bounds.right && y < bounds.bottom && y > bounds.top) {
+      return true;
+    }
+  }
+
+  if (DEBUG) {
+    if (debug_state.last_clicked && debug_state.last_clicked.id == "debug_target" && within_Canvas(g.state.canvases[1])) {
       d = [...debug_binds];
     }
-    else if(!PAUSED && debug_state.last_clicked &&  debug_state.last_clicked.id == "target"){
-      d= [...all_binds]
+    else if (!PAUSED && debug_state.last_clicked && debug_state.last_clicked.id == "target" && within_Canvas(g.state.canvases[0])) {
+      d = [...all_binds]
     }
-    else{
+    else {
       d = [];
     }
   }
-  else{
+  else {
     d = [...all_binds];
   }
   for (let a = 0; a < d.length; a++) {
     let selected = d[a];
-    if (selected.type === btype.mouse && selected.key === ("mouse" + e.button + "down")  && !selected.executed) {
-      if(selected.execute === exec_type.once){
+    if (selected.type === btype.mouse && selected.key === ("mouse" + e.button + "down") && !selected.executed) {
+      if (selected.execute === exec_type.once) {
         selected.function();
       }
-      else if(selected.execute === exec_type.repeat){
+      else if (selected.execute === exec_type.repeat) {
         selected.repeat_timer.active = true;
       }
       selected.executed = true;
     }
     if (selected.type === btype.mouse && (selected.key === ("mouse" + e.button + "up") || selected.key == "mouseup") && selected.executed && selected.execute === exec_type.once) {
       selected.executed = false;
-   }
-   else if(selected.type === btype.mouse && (selected.key === ("mouse" + e.button + "up") || selected.key == "mouseup") && selected.executed && selected.execute === exec_type.repeat){
-     let g = [...repeat_binds];
-     for(let a = 0; a < g.length;a++){
-       if(g[a].bind.id === selected.id){
-         selected.executed = false;
-         g[a].active = false;
-         break;
-       }
-     }
-   }
+    }
+    else if (selected.type === btype.mouse && (selected.key === ("mouse" + e.button + "up") || selected.key == "mouseup") && selected.executed && selected.execute === exec_type.repeat) {
+      let g = [...repeat_binds];
+      for (let a = 0; a < g.length; a++) {
+        if (g[a].bind.id === selected.id) {
+          selected.executed = false;
+          g[a].active = false;
+          break;
+        }
+      }
+    }
   }
 })
 
@@ -172,7 +185,7 @@ export let held_keys:held_keys = {};
 
 window.addEventListener("wheel",(e)=>{
   let code:string;
-
+  e.preventDefault();
   if(e.deltaY < 0){
     code = "scrollup";
   }
@@ -208,6 +221,9 @@ window.addEventListener("wheel",(e)=>{
 
 window.addEventListener("keydown", (e) => {
   held_keys[e.code] = true;
+  if(e.code == "Tab"){
+    e.preventDefault();
+  }
   let d:bind[];
   if(DEBUG){
     if(debug_state.last_clicked && debug_state.last_clicked.id == "debug_target"){
@@ -244,7 +260,7 @@ window.addEventListener("keydown", (e) => {
 })
 window.addEventListener("keyup", (e) => {
   held_keys[e.code] = false;
-  
+
   let d:bind[];
   if(DEBUG){
     if(debug_state.last_clicked && debug_state.last_clicked.id == "debug_target"){
@@ -329,7 +345,7 @@ let all_binds:Array<bind> = []
 
 let repeat_binds:Array<repeat_bind> = [];
 
-export function Poll_Mouse(camera:Camera,canvas:HTMLCanvasElement = g.state.canvas):Vector{
+export function Poll_Mouse(camera:Camera,canvas:HTMLCanvasElement = g.state.canvases[0]):Vector{
   let height = GetViewportDimensions().height;
   let wratio = parseFloat(window.getComputedStyle(canvas).width)/GetViewportDimensions().width;
   let vratio = parseFloat(window.getComputedStyle(canvas).height)/GetViewportDimensions().height;

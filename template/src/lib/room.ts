@@ -10,6 +10,7 @@ import {game} from "../van";
 import {debug_update_obj_list,root_path,path} from "../lib/debug";
 import {prefabs} from "../game/objects/prefabs";
 import {Vec,getRandInt} from "lib/math";
+import { Camera } from "./render";
 
 interface position{
   x:number,
@@ -53,6 +54,15 @@ interface internal_map{
     [index:number]:Map<string,obj>
   }
 }
+
+interface cache_entries{
+  [index:string]:any
+}
+
+export interface p2p{
+  parse_packet(type:string,data:unknown,id:number):void
+}
+
 
 export class map_matrix{
   length:number;
@@ -168,6 +178,8 @@ export class room<T>{
   text_nodes:Text[] = [];
   config:state_config;
   proximity_map:map_matrix = new map_matrix(10000,1000);
+  cameras:Camera[] = [];
+  cache_entries:cache_entries = {};
   constructor(game:game<unknown>,config:state_config){
     this.game = game;
     this.config = config;
@@ -344,6 +356,12 @@ export class room<T>{
   cleanup(){
 
   }
+  cache(key:string,value?:any){
+    if(!this.cache_entries[key]){
+      this.cache_entries[key] = value;
+    }
+    return this.cache_entries[key];
+  }
   //The room's state updating function.
   statef(time: number) {
     for(let particle of this.particles_arr){
@@ -359,12 +377,11 @@ export class room<T>{
       velocityCollisionCheck(ticking_objects[a], this.objects);
       ticking_objects[a].statef(time);
     }
-    if(this.game.state.cameras){
-      for(let cameras of this.game.state.cameras){
-        if(cameras.hud){
-          cameras.hud.statef(time);
-        } 
-      } 
+    for(let cam of this.cameras){
+      if(cam.hud){
+        cam.hud.statef(time);
+      }
+      cam.statef(time);
     }
   }
   emitParticle(name:string,pos:position,lifetime:number,pos_range:number){
@@ -399,5 +416,11 @@ export class room<T>{
       sprite_width: this.background.width,
       opacity:1
     }
+  }
+}
+
+export class p2p_room extends room<unknown> implements p2p{
+  parse_packet(type:string,data:unknown,id:number){
+    
   }
 }
