@@ -27,6 +27,6 @@
   "dependencies": {
     "astar-typescript": "^1.2.5",
     "fs-extra": "^9.1.0",
-    "webpack": "^4.44.2"
+    "webpack": "^4.46.0"
   }
 }
