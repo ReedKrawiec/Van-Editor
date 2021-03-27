@@ -8,6 +8,7 @@ import {DEBUG, copy, game} from "../van";
 import { Vec,rotation_length,angle_towards } from "./math";
 import {root_path,path} from "../lib/debug"; 
 import {Text} from "./hud";
+import {diff, string_dict} from "lib/utils";
 
 interface obj_i<T> {
   statef: state_func<T>,
@@ -113,6 +114,7 @@ export abstract class obj{
   //This is the loaded sprite/spritesheet of the object
   //which is fetched from the url above
   sprite_sheet: HTMLImageElement;
+  sprite_sheet_base64:string;
   state: obj_state;
   render_type = render_type.sprite;
   //These should correspond to the actual object's sprite height and width
@@ -151,6 +153,10 @@ export abstract class obj{
   opacity:number;
   text_nodes:Text[] = [];
   cache_entries:cache_entries = {};
+  internal_cache:cache_entries = {};
+  state_properties_to_sync:string[] = [];
+  past_state:string_dict = {};
+  diff_state:string_dict = {};
   getState() {
     return this.state;
   }
@@ -218,7 +224,7 @@ export abstract class obj{
           target[prop] = this.x_proxy(reciever);
           this.recalculateProxBoxes();
           if(this.static){
-            this.game.redrawStatics();
+            this.game.updateStaticsInCollision(this.getFullCollisionBox());
           }
         }
         return true;
@@ -230,7 +236,7 @@ export abstract class obj{
           target[prop] = reciever;
           this.recalculateProxBoxes();
           if(this.static){
-            this.game.redrawStatics();
+            this.game.updateStaticsInCollision(this.getFullCollisionBox());
           }
         }
         return true;
@@ -257,7 +263,7 @@ export abstract class obj{
           if(this.game && this.game.getRoom()){
             this.recalculateProxBoxes();
             if(this.static){
-              this.game.redrawStatics();
+              this.game.updateStaticsInCollision(this.getFullCollisionBox());
             }
           }
         } else if(prop == "scaling"){
@@ -267,7 +273,7 @@ export abstract class obj{
           if(this.game && this.game.getRoom()){
             this.recalculateProxBoxes();
             if(this.static){
-              this.game.redrawStatics();
+              this.game.updateStaticsInCollision(this.getFullCollisionBox());
             }
           }
         }
@@ -287,16 +293,24 @@ export abstract class obj{
   load() {
     let _this = this;
     return new Promise<void>((resolve, reject) => {
-      let a = new Image();
-      let p = this.sprite_url;
+      let image = new Image();
+      let url = this.sprite_url;
       if(DEBUG){
-        p = path.join(root_path,this.sprite_url);
+        url = path.join(root_path,this.sprite_url);
       }
-      a.src = p;
-      a.onload = (async () => {
-        _this.sprite_sheet = a;
+      image.src = url;
+      image.onload = (async () => {
+        _this.sprite_sheet = image;
         _this.registerAnimations();
         await this.audio.load();
+        var canvas = document.createElement('CANVAS') as HTMLCanvasElement;
+        var ctx = canvas.getContext('2d');
+        var dataURL;
+        canvas.height = this.height;
+        canvas.width = this.width;
+        ctx.drawImage(image, 0, 0);
+        dataURL = canvas.toDataURL();
+        this.sprite_sheet_base64 = dataURL;
         resolve();
       });
     })
@@ -347,6 +361,17 @@ export abstract class obj{
     for(let node of this.text_nodes){
       node.statef(time);
     }
+    if(this.state_properties_to_sync.length > 0){
+      let network_properties:string_dict = {}
+      let state = this.state as any;
+      if(this.state_properties_to_sync){
+        for(let key of this.state_properties_to_sync){
+          network_properties[key] = JSON.stringify(state[key]);
+        }
+      }
+      this.diff_state = diff(this.past_state,network_properties)
+      this.past_state = network_properties;
+    }
   }
   delete() {
     for (let a of this.binds) {
@@ -357,7 +382,7 @@ export abstract class obj{
     }
     this.game.getRoom().deleteItem(this.id);
     if(this.static){
-      this.game.redrawStatics();
+      this.game.updateStaticsInCollision(this.getFullCollisionBox());
     }
   }
   UnbindAll(){

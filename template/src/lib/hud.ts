@@ -44,6 +44,9 @@ export class HUD{
       x.statef(a);
     }
   }
+  load(){
+    return Promise.all(this.graphic_elements.map((a)=>a.load()))
+  }
   setTextElements():Text[]{
     return [];
   }

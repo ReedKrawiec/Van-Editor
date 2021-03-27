@@ -2,15 +2,16 @@ import { bounding_box, gravity_obj,obj } from "./object";
 import { Particle, sprite } from "./sprite";
 import { dimensions, obj_state, Vector } from "./state";
 import { velocityCollisionCheck,check_collisions,collision_box,check_all_collisions,check_all_objects} from "./collision";
-import {render_collision_box,DEBUG, PAUSED} from "../van";
+import {render_collision_box,DEBUG, PAUSED, peer_connection} from "../van";
 import {Bind,control_func, exec_type} from "./controls";
 import {HUD,Text, Text_Node} from "./hud";
 import {audio} from "./audio"
-import {game} from "../van";
-import {debug_update_obj_list,root_path,path} from "../lib/debug";
+import {game,peer_to_peer_game} from "../van";
+import {debug_update_obj_list,root_path,path, debug_state} from "../lib/debug";
 import {prefabs} from "../game/objects/prefabs";
 import {Vec,getRandInt} from "lib/math";
 import { Camera } from "./render";
+import {net_type, Web, Network} from "./network";
 
 interface position{
   x:number,
@@ -60,17 +61,20 @@ interface cache_entries{
 }
 
 export interface p2p{
-  parse_packet(type:string,data:unknown,id:number):void
+  parse_packet(type:string,data:unknown,id:string):void
 }
 
 
-export class map_matrix{
+export class proximity_matrix{
   length:number;
   square_length:number;
   internal_map:internal_map = {};
-  constructor(full_length:number,square_length:number){
+  constructor(full_length:number,dimension:number){
     this.length = full_length;
-    this.square_length = square_length;
+    this.square_length = this.length/dimension;
+    if(dimension % 2 != 1){
+      throw new Error("Proximity map matix dimension must be odd. Got:" + dimension)
+    }
   }
   private ensure(a:Vector){
     if(!this.internal_map[a.y]){
@@ -102,18 +106,18 @@ export class map_matrix{
   getObjectsFromBox(a:collision_box):obj[]{
     return this.getObjectsFromCords(this.getCordsFromBox(a));
   }
-  getObjectsFromCords(a:Vector[]):obj[]{
-    let o = new Set<obj>();
-    for(let v of a){
-      if(this.exists(v)){
-        let keys = this.internal_map[v.y][v.x].keys();
+  getObjectsFromCords(input:Vector[]):obj[]{
+    let object_set = new Set<obj>();
+    for(let cord of input){
+      if(this.exists(cord)){
+        let keys = this.internal_map[cord.y][cord.x].keys();
         for(let k of keys){
-          let j = this.internal_map[v.y][v.x].get(k);
-          o.add(j);
+          let j = this.internal_map[cord.y][cord.x].get(k);
+          object_set.add(j);
         }
       }
     }
-    return Array.from(o);
+    return Array.from(object_set);
   }
   getCordsFromBox(a:collision_box){
     let bottom_left = Vec.create(a.x - a.width/2,a.y - a.height/2);
@@ -128,7 +132,7 @@ export class map_matrix{
     top_right = Vec.func(top_right,(a)=>Math.min(this.length/this.square_length,a));
     let min = Vec.func(bot_left,(a)=>Math.floor(a));
     let max = Vec.func(top_right,(a)=>Math.ceil(a));
-    let totals = Vec.sub(max,min);
+    let dimensions_in_boxes = Vec.sub(max,min);
     
     let all_boxes = [];
     let cord = Vec.func(
@@ -139,8 +143,8 @@ export class map_matrix{
         this.square_length),
       (a)=>Math.floor(a)
     );
-    for(let a = 0;a<totals.y;a++){
-      for(let b = 0;b<totals.x;b++){
+    for(let a = 0;a<dimensions_in_boxes.y;a++){
+      for(let b = 0;b<dimensions_in_boxes.x;b++){
         let new_vec = Vec.add(Vec.create(b,a),cord);
         new_vec = Vec.func(new_vec,(a)=>Math.floor(a));
         all_boxes.push(new_vec);
@@ -177,7 +181,7 @@ export class room<T>{
   render:boolean = true;
   text_nodes:Text[] = [];
   config:state_config;
-  proximity_map:map_matrix = new map_matrix(10000,1000);
+  proximity_map:proximity_matrix = new proximity_matrix(10000,5);
   cameras:Camera[] = [];
   cache_entries:cache_entries = {};
   constructor(game:game<unknown>,config:state_config){
@@ -192,16 +196,30 @@ export class room<T>{
       //If an object has a parent object, it's a descendent of a composite object
       //The parent will spawn this object when it's instantiated, so we do
       //not have to save this instance.
-        config.objects.push({
-          type:o.constructor.name,
-          state:{
-            position:Vec.scalar_add(o.state.position,0),
-            velocity:Vec.scalar_add(o.state.velocity,0),
-            rotation:o.state.rotation,
-            scaling:o.state.scaling
-          },
-          parameters:o.params
-        })
+        let state:obj_state = {
+          position:Vec.from(o.state.position)
+        }
+        if(o.state.velocity.x != 0 || o.state.velocity.y !=0){
+          state.velocity = Vec.from(o.state.velocity)
+        }
+        if(o.state.rotation != 0){
+          state.rotation = o.state.rotation;
+        }
+        if(o.state.scaling.width != 1 || o.state.scaling.height != 1){
+          state.scaling = o.state.scaling;
+        }
+        if(Object.keys(o.params).length > 0){
+          config.objects.push({
+            type:o.constructor.name,
+            state,
+            parameters:o.params
+          })
+        } else {
+          config.objects.push({
+            type:o.constructor.name,
+            state
+          })
+        }
     }
     return config;
   }
@@ -210,20 +228,25 @@ export class room<T>{
   load() {
     let _this = this;
     return new Promise<void>(async (resolve, reject) => {
-      let a = new Image();
-      let to_await = this.objects.map((a) => a.load());
-      await Promise.all(to_await);
-      let p = this.background_url;
+      let background = new Image();
+      let object_promise_array = this.objects.map((a) => a.load());
+      await Promise.all(object_promise_array);
+      let background_url = this.background_url;
       if(DEBUG){
-        p = path.join(root_path,this.background_url);
+        background_url = path.join(root_path,this.background_url);
       }
-      a.src = p;
-      a.onerror = (() => {
+      background.src = background_url;
+      background.onerror = (() => {
         throw new Error("Loading Error:" + this.background_url);
       })
-      a.onload = (async() => {
-        _this.background = a;
+      background.onload = (async() => {
+        _this.background = background;
         await this.audio.load();
+        for(let cam of this.cameras){
+          if(cam.hud){
+            await cam.hud.load()
+          }
+        }
         resolve();
       });
     })
@@ -234,9 +257,11 @@ export class room<T>{
   //This is used while loading objects from file, it's used to dynamically load
   //objects from the room's json. If adding items within code, it's better to create
   //new instances of objects through addItem
-  async addItemStateConfig(config:object_state_config){
+  async addItemStateConfig(config:object_state_config,id?:string){
     if(prefabs[config.type]){
-      let new_obj = <obj>(new prefabs[config.type](Object.assign({},config.state),config.parameters));
+      let params = config.parameters || {}
+      let new_obj = <obj>(new prefabs[config.type](Object.assign({},config.state),params));
+      if(id) new_obj.id = id;
       await this.addItems(new_obj.combinedObjects());
     }
     else{
@@ -263,7 +288,7 @@ export class room<T>{
     }
     list.push(...o);
     if(this.game.state.current_room && o.some((o)=>o.static)){
-      this.game.redrawStatics();
+      this.game.drawAllStatics();
     }
     if(DEBUG && list === this.objects){
       debug_update_obj_list();
@@ -320,7 +345,7 @@ export class room<T>{
   }
   //Checks for any objects in the box that contain all tags in the second argument
   checkObjectsInclusive(box:collision_box,tags:string[],list=this.objects):obj[]{
-    if(DEBUG){
+    if(DEBUG && debug_state.render_toggles["collision_box"]){
       render_collision_box(box);
     }
     if(list == this.objects){
@@ -331,7 +356,7 @@ export class room<T>{
   }
   //checks for objects with collision in the box that do not contain the tags in the second argument
   checkCollisions(box:collision_box,exempt:string[] = [],list=this.objects):obj[]{
-    if(DEBUG){
+    if(DEBUG && debug_state.render_toggles["collision_box"]){
       render_collision_box(box);
     }
     if(list == this.objects){
@@ -341,7 +366,7 @@ export class room<T>{
   }
   //checks for  any objects in the box that do not contain the tags in the second argument
   checkObjects(box:collision_box,exempt:string[] = [],list=this.objects):obj[]{
-    if(DEBUG){
+    if(DEBUG && debug_state.render_toggles["collision_box"]){
       render_collision_box(box);
     }
     if(list == this.objects){
@@ -419,8 +444,46 @@ export class room<T>{
   }
 }
 
-export class p2p_room extends room<unknown> implements p2p{
-  parse_packet(type:string,data:unknown,id:number){
+export class p2p_room<T> extends room<T> implements p2p{
+  network:Network;
+  net_type:net_type;
+  game:peer_to_peer_game<unknown>;
+  constructor(game:peer_to_peer_game<unknown>,config:state_config){
+    super(game,config);
+    this.game = game;
+    this.network = game.network;
+    this.net_type = game.net_type;
+  }
+  parse_packet(type:string,data:unknown,id:string){
     
+  }
+  send_packet(type:string,data:any,peer_id?:number){
+    this.network.send(type,data);
+  }
+  async addItemNetwork(type:string,state:any,parameters:any){
+    let id = getRandInt(100000,999999)
+    let state_config = {
+      type,
+      state,
+      parameters
+    }
+    this.send_packet("add_item",{
+      id,
+      state_config
+    });
+    await this.addItemStateConfig(state_config,id.toString());
+  }
+  recieve_packet(id:number,type:string,data:string){
+
+  }
+  statef(time:number){
+    super.statef(time);
+    let network_items = this.objects.filter((o)=>o.state_properties_to_sync.length > 0 && Object.keys(o.diff_state).length > 0);
+    for(let item of network_items){
+      this.send_packet("update_item",{
+        id:item.id,
+        state:item.diff_state
+      })
+    }
   }
 }

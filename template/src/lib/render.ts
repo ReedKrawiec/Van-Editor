@@ -213,6 +213,106 @@ export const canvas_renderer = (r:renderer_args,a:canvas_args) => {
   r.context.restore();
 }
 
+export const hud_sprite_renderer = (r:renderer_args, s:sprite_args) => {
+  let camera = r.camera;
+  let vheight = r.camera.state.dimensions.height;
+  let final_x = (s.x - s.sprite.sprite_width * s.scale.width / 2);
+  let final_y = (vheight - s.y - s.sprite.sprite_height * s.scale.height / 2) ;
+  let height = s.sprite.sprite_height * s.scale.height;
+  let width = s.sprite.sprite_width * s.scale.width;
+  r.context.save();
+  r.context.globalAlpha = s.sprite.opacity;
+  r.context.translate(final_x  + (width) / 2, final_y + height / 2);
+  let radians = s.rotation * (Math.PI / 180);
+  r.context.rotate(radians);
+  if(s.scale_type == scale_type.grow){
+    if(typeof s.sprite.sprite_sheet == "string"){
+      let image = new Image();
+      image.onload = () => {
+        r.context.drawImage(
+          image,
+          s.sprite.left,
+          s.sprite.top,
+          s.sprite.sprite_width,
+          s.sprite.sprite_height,
+          -(width ) / 2,
+          -height / 2,
+          width,
+          height
+        )
+        r.context.restore();
+      }
+      image.src = s.sprite.sprite_sheet;
+    }
+    else{
+      r.context.drawImage(
+        s.sprite.sprite_sheet,
+        s.sprite.left,
+        s.sprite.top,
+        s.sprite.sprite_width,
+        s.sprite.sprite_height,
+        -(width ) / 2,
+        -height / 2,
+        width,
+        height
+      )
+      r.context.restore();     
+    }
+  }
+  else if(s.scale_type == scale_type.repeat){
+    let one_width = s.sprite.sprite_width * r.camera.state.scaling;
+    let one_height = s.sprite.sprite_height * r.camera.state.scaling;
+    let total_hor_sprites = width/one_width
+    let total_ver_sprites = height/one_height;
+   for(let a = 0;a < total_hor_sprites;a += 1){
+     for(let b = 0;b < total_ver_sprites;b += 1){
+       let new_width = one_width;
+       let new_height = one_height;
+       if((a + 1) * one_width - width > 0){
+         new_width = width % one_width;
+       }
+       if((b + 1) * one_height - height > 0){
+         new_height = height % one_height;
+       }
+       if(typeof s.sprite.sprite_sheet == "string"){
+        let image = new Image();
+        image.onload = () => {
+          r.context.drawImage(
+            image,
+            s.sprite.left,
+            s.sprite.top,
+            new_width / (r.camera.state.scaling),
+            new_height / (r.camera.state.scaling),
+            -width/2 + a * one_width,
+            -height/2 + b * one_height,
+            new_width,
+            new_height
+          )
+          r.context.restore();
+        }
+        image.src = s.sprite.sprite_sheet;
+       }
+       else{
+        r.context.drawImage(
+          s.sprite.sprite_sheet,
+          s.sprite.left,
+          s.sprite.top,
+          new_width / (r.camera.state.scaling),
+          new_height / (r.camera.state.scaling),
+          -width/2 + a * one_width,
+          -height/2 + b * one_height,
+          new_width,
+          new_height
+         )
+         r.context.restore();
+       }
+
+     }
+
+   } 
+  }
+}
+
 export const sprite_renderer = (r: renderer_args, s: sprite_args) => {
   let camera = r.camera;
   let vheight = r.camera.state.dimensions.height / r.camera.state.scaling;
@@ -226,17 +326,22 @@ export const sprite_renderer = (r: renderer_args, s: sprite_args) => {
   let radians = s.rotation * (Math.PI / 180);
   r.context.rotate(radians);
   if(s.scale_type == scale_type.grow){
-    r.context.drawImage(
-      s.sprite.sprite_sheet,
-      s.sprite.left,
-      s.sprite.top,
-      s.sprite.sprite_width,
-      s.sprite.sprite_height,
-      -(width ) / 2,
-      -height / 2,
-      width,
-      height
-    )
+    if(typeof s.sprite.sprite_sheet == "string"){
+      
+    }
+    else{
+      r.context.drawImage(
+        s.sprite.sprite_sheet,
+        s.sprite.left,
+        s.sprite.top,
+        s.sprite.sprite_width,
+        s.sprite.sprite_height,
+        -(width ) / 2,
+        -height / 2,
+        width,
+        height
+      )
+    }
   }
   else if(s.scale_type == scale_type.repeat){
     let one_width = s.sprite.sprite_width * r.camera.state.scaling;

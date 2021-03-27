@@ -5,12 +5,15 @@ let ipcRenderer:any;
 import { prefabs } from "../game/objects/prefabs";
 export let project_path = "";
 export let root_path = "";
+export let renderer_path = "./renderer.js";
 if(DEBUG){
  path =  window.require("path");
  fs = window.require("fs");
  ipcRenderer  = window.require("electron").ipcRenderer;
  project_path = ipcRenderer.sendSync('path-request', 'ping')[0]
  root_path = path.join(project_path,"..")
+ renderer_path = path.join(root_path,"../../target/renderer.js");
+
 }
 import { obj, params } from "./object";
 import { obj_state } from "./state";
@@ -444,6 +447,10 @@ interface debug_action {
   element: obj
 }
 
+interface render_toggle_entry{
+  [index:string]:boolean
+}
+
 export interface debug_vars {
   target: HTMLCanvasElement,
   camera: Camera,
@@ -457,7 +464,8 @@ export interface debug_vars {
   click_position: Vector,
   actions_stack: debug_action[],
   current_action: debug_action,
-  render_delta_time:number
+  render_delta_time:number,
+  render_toggles:render_toggle_entry
 }
 
 export let debug_state: debug_vars;
@@ -491,9 +499,16 @@ export let debug_setup = () => {
     selected_element_initial_scaling: { width: 1, height: 1 },
     actions_stack: [],
     render_delta_time:0,
-    current_action: undefined
+    current_action: undefined,
+    render_toggles:{
+      "proximity_box":false,
+      "path_finding":false,
+      "collision_box":false,
+      "bounding_box":false
+    }
   }
   debug_state.camera.hud = new Debug_hud();
+
   debug_binds.push({
     key: "mouse0down",
     type: btype.mouse,
@@ -759,6 +774,42 @@ export let debug_setup = () => {
     function: undo_func,
     execute: exec_type.once
   })
+  debug_binds.push({
+    key: "KeyQ",
+    type:btype.keyboard,
+    id:13,
+    function:()=>{
+      debug_state.render_toggles["path_finding"] = !debug_state.render_toggles["path_finding"]
+    },
+    execute:exec_type.once
+  }) 
+  debug_binds.push({
+    key: "KeyE",
+    type:btype.keyboard,
+    id:14,
+    function:()=>{
+      debug_state.render_toggles["proximity_box"] = !debug_state.render_toggles["proximity_box"]
+    },
+    execute:exec_type.once
+  }) 
+  debug_binds.push({
+    key: "KeyR",
+    type:btype.keyboard,
+    id:14,
+    function:()=>{
+      debug_state.render_toggles["collision_box"] = !debug_state.render_toggles["collision_box"]
+    },
+    execute:exec_type.once
+  }) 
+  debug_binds.push({
+    key: "KeyT",
+    type:btype.keyboard,
+    id:15,
+    function:()=>{
+      debug_state.render_toggles["bounding_box"] = !debug_state.render_toggles["bounding_box"]
+    },
+    execute:exec_type.once
+  }) 
   window.addEventListener("click", (e) => {
     if (e.target instanceof HTMLElement) {
       debug_state.last_clicked = e.target;

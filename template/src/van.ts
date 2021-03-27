@@ -3,13 +3,15 @@ export let PAUSED = process.env.NODE_ENV === 'dev';
 import { obj } from "./lib/object";
 import { p2p, room,p2p_room } from "./lib/room";
 import { collision_box } from "./lib/collision";
-import { sprite_renderer, rect_renderer, stroked_rect_renderer, hud_text_renderer, Camera, text_renderer, scale_type, line, line_renderer, canvas_renderer } from "./lib/render";
+import { sprite_renderer, rect_renderer, stroked_rect_renderer, hud_sprite_renderer, hud_text_renderer, Camera, text_renderer, scale_type, line, line_renderer, canvas_renderer } from "./lib/render";
 import { ExecuteRepeatBinds, Unbind } from "./lib/controls";
-import { debug_state, debug_update_room_list, debug_update_obj_list, debug_update_prefabs, debug_statef, debug_setup } from "./lib/debug";
+import { debug_state,renderer_path, debug_update_room_list, debug_update_obj_list, debug_update_prefabs, debug_statef, debug_setup } from "./lib/debug";
 import { positioned_sprite } from "lib/sprite";
 import { rooms as room_list } from "./game/rooms/rooms";
-import { Vec } from "lib/math";
+import { getRandInt, Vec } from "lib/math";
+import {Pathing_Room} from "game/rooms/abstract/Pathing_Room";
 import Peer from 'peerjs';
+import { net_type,Network, Web} from "lib/network";
 
 
 
@@ -66,8 +68,19 @@ export function setPaused(x: boolean) {
   PAUSED = x;
 }
 
-export const render_collision_box = (a: collision_box) => {
-  boxes.push(a);
+export const render_collision_box = (box: collision_box,color:string = "red") => {
+  boxes.push({
+    box,
+    color
+  });
+}
+
+export const render_filled_box = (box:collision_box,color:string = "red", opacity:number = 1) => {
+  filled_boxes.push({
+    box,
+    color,
+    opacity
+  })
 }
 
 let lines: line[] = [];
@@ -76,7 +89,18 @@ export const render_line = (a: line) => {
   lines.push(a);
 }
 
-let boxes: Array<collision_box> = [];
+
+
+let boxes: Array<{
+  color:string,
+  box:collision_box
+}> = [];
+
+let filled_boxes:Array<{
+  color:string,
+  box:collision_box,
+  opacity:number
+}> = [];
 
 export let copy = (a: any) => {
   return JSON.parse(JSON.stringify(a));
@@ -94,6 +118,11 @@ interface game_state<T> {
 
 export let rooms: any[] = [];
 export let objects: any[];
+
+let worker = new Worker(renderer_path)
+worker.onmessage = (e) => {
+  
+}
 
 export class game<T>{
   state: game_state<T>;
@@ -119,9 +148,12 @@ export class game<T>{
       globals: init_state
     }
     this.offscreen_canvas = document.createElement("canvas");
+    let test = document.createElement("canvas");
+    let offscreen = test.transferControlToOffscreen();
     this.offscreen_context = this.offscreen_canvas.getContext("2d");
     this.static_canvas = document.createElement("canvas");
     this.static_context = this.static_canvas.getContext("2d");
+    (<any>worker).postMessage({ canvas: offscreen }, [offscreen]);
     //DEBUG determines whether the game is running within the editor
     if (DEBUG) {
 
@@ -141,7 +173,7 @@ export class game<T>{
     //Creates a onclick function on the window that handles element onclick functions
     //init_click_handler(this);
   }
-  render(t: number) {
+  async render(t: number) {
     //t is current render time
     let delta_time = t - last_render_time
     last_render_time = t;
@@ -170,7 +202,6 @@ export class game<T>{
       //calculating the cutoffs
       this.offscreen_canvas.height = camera.state.dimensions.height;
       this.offscreen_canvas.width = camera.state.dimensions.width;
-      this.offscreen_context.clearRect(0, 0, camera.state.dimensions.width, camera.state.dimensions.height);
       this.offscreen_context.fillStyle = "black";
       this.offscreen_context.fillRect(0, 0, camera.state.dimensions.width, camera.state.dimensions.height);
       //This collision box represents the camera's field of view in the game space
@@ -227,7 +258,7 @@ export class game<T>{
 
         
         for (let positioned_sprite of rendered) {
-          sprite_renderer(render_args, {
+          await sprite_renderer(render_args, {
             sprite: positioned_sprite.sprite,
             x: positioned_sprite.x,
             y: positioned_sprite.y,
@@ -267,7 +298,7 @@ export class game<T>{
           let rendered = graphic.renderTrack(t);
           if (graphic.render) {
             for (let positioned_sprite of rendered) {
-              sprite_renderer(render_args, {
+              hud_sprite_renderer(render_args, {
                 sprite: positioned_sprite.sprite,
                 x: positioned_sprite.x,
                 y: positioned_sprite.y,
@@ -289,6 +320,51 @@ export class game<T>{
       //If a camera is marked as a debug camera, we render the
       //  hitboxes, and potentially update the editor
       if (camera.state.debug) {
+        
+
+        let render_toggles = debug_state.render_toggles;
+        if(render_toggles["proximity_box"]){
+          let room = this.state.current_room;
+          
+          let room_length = room.proximity_map.length;
+          let square_length = room.proximity_map.square_length;
+          let dimension = room_length/square_length;
+          for(let x = 0; x < dimension; x++){
+            for(let y = 0; y < dimension;y++){
+              render_collision_box({
+                x:x * square_length + square_length/2 - room_length/2,
+                y:y * square_length + square_length/2 - room_length/2,
+                width:square_length,
+                height:square_length
+              },"purple")
+            }
+          }
+        }
+        
+        if(render_toggles["bounding_box"]){
+          for(let obj of camera_colliders){
+            render_collision_box(obj.getFullCollisionBox(),"orange")
+          }
+        }
+        if(DEBUG && debug_state.render_toggles["path_finding"]){
+          let room = this.state.current_room as Pathing_Room<unknown>;
+          if(room.computeNavMesh){
+            let mesh = room.computeNavMesh(room.floor_tag,"");
+            for(let y = 0 ; y < mesh.grid.length; y++){
+              for(let x = 0; x <  mesh.grid[y].length; x++){
+                let final_y = y*room.nav_node_diameter + (mesh.box.y - mesh.box.height/2) + room.nav_node_diameter/2;
+                let final_x = x*room.nav_node_diameter + (mesh.box.x - mesh.box.width/2) + room.nav_node_diameter/2;
+                render_filled_box({
+                  x:final_x,
+                  y:final_y,
+                  width:room.nav_node_diameter,
+                  height:room.nav_node_diameter
+                },mesh.grid[y][x] == 0 ? "green" : "red",0.4);
+              }
+            }
+          }
+          
+        }
         let box: collision_box;
         let boxes_copy = [...boxes];
         let lines_copy = [...lines];
@@ -297,12 +373,12 @@ export class game<T>{
           line_renderer(this.offscreen_context, line, "orange", 10, camera);
         }
         while (boxes_copy.length > 0) {
-          let box = boxes_copy.pop();
+          let box_entry = boxes_copy.pop();
           let rect = {
-            width: box.width,
-            height: box.height
+            width: box_entry.box.width,
+            height: box_entry.box.height
           }
-          stroked_rect_renderer(this.offscreen_context, rect, box.x, box.y, "#FF0000", 1, camera);
+          stroked_rect_renderer(this.offscreen_context, rect, box_entry.box.x, box_entry.box.y, box_entry.color, 1, camera);
         }
         while (hitboxes.length > 0) {
           let box = hitboxes.pop();
@@ -334,9 +410,9 @@ export class game<T>{
       boxes = [];
       lines = [];
     }
-    requestAnimationFrame((a) => {
+    requestAnimationFrame(async (a) => {
       if (this.isRendering)
-        this.render(a)
+        await this.render(a)
     });
   }
   start_logic(a: number) {
@@ -381,12 +457,13 @@ export class game<T>{
     }
     throw new Error("Attempted to load non-existing room.");
   }
-  redrawStatics() {
+  //Redraws any static objects contained within the list
+  drawStaticObjects(input:obj[]){
     let room_length = this.state.current_room.proximity_map.length;
-    let statics = this.state.current_room.objects.filter(u => u.static);
-    this.static_canvas.width = room_length;
-    this.static_canvas.height = room_length;
-    this.static_context.clearRect(0, 0, room_length, room_length);
+    let statics = input.filter(u => u.static);
+    /*This camera spans the entire world space, which we use to capture
+    A render of every static objects, which we cache. Instead of rendering 
+    every static object every frame, we render the cached image. */
     let static_cam = new Camera({
       x: 0,
       y: 0,
@@ -415,6 +492,25 @@ export class game<T>{
         });
       }
     })
+  }
+  //Redraws the statics that are contained within the input collision box.
+  updateStaticsInCollision(input:collision_box){
+    let prox_boxes = this.state.current_room.proximity_map.getCordsFromBox(input);
+    let square_length = this.state.current_room.proximity_map.square_length;
+    let room_length = this.state.current_room.proximity_map.length;
+    for(let box of prox_boxes){
+      this.static_context.clearRect(box.x * square_length,room_length - (box.y * square_length + square_length),square_length,square_length);
+    }
+    let statics = this.state.current_room.proximity_map.getObjectsFromCords(prox_boxes);
+    this.drawStaticObjects(statics);
+  }
+  //Creates the inital cached render of the static objects.
+  drawAllStatics() {
+    let room_length = this.state.current_room.proximity_map.length;
+    this.static_canvas.width = room_length;
+    this.static_canvas.height = room_length;
+    this.static_context.clearRect(0, 0, room_length, room_length);
+    this.drawStaticObjects(this.state.current_room.objects)
   }
   async loadRoom(x: room<unknown>) {
     //Clears the room's logic loop if one
@@ -445,7 +541,7 @@ export class game<T>{
     x.registerParticles();
     this.state.current_room = x;
     this.state.current_room.initialize();
-    this.redrawStatics();
+    this.drawAllStatics();
     this.state.logic = this.start_logic(logic_loop_interval)
 
     if (DEBUG) {
@@ -472,66 +568,10 @@ export enum peer_connection{
 }
 
 export class peer_to_peer_game<T> extends game<T>{
-  hosting_peer:Peer;
-  hosting_connections:Peer.DataConnection[] = [];
-  peer_host:Peer.DataConnection;
-  type:peer_connection;
-  constructor(ctx: CanvasRenderingContext2D, init_state: T){
-    super(ctx, init_state);
-    this.hosting_peer = new Peer();
+  net_type:net_type = net_type.web;
+  network:Network = new Web();
+  constructor(ctx: CanvasRenderingContext2D, init_state: T) {
+    super(ctx,init_state);
+    this.network.game = this;
   }
-  connect(id:string){
-    const conn = this.hosting_peer.connect(id);
-    this.peer_host = conn;
-    this.type = peer_connection.child;
-    conn.on("open", () => {
-      conn.send(JSON.stringify({type:"connection",recieved:"success"}));
-    })
-    conn.on("data", (data) => {
-      let {type,recieved} = JSON.parse(data);
-      this.recieve_from_host(type,recieved)
-    })
-  }
-  host(){
-    this.type = peer_connection.host;
-    this.hosting_peer.on("connection", (connection) => {
-      this.hosting_connections.push(connection);
-      let id = this.hosting_connections.length - 1;
-      connection.on("data",(data) => {
-        let {type,recieved} = JSON.parse(data);
-        this.recieve_from_peer(id,type,recieved)
-      })      
-    })
-  }
-  send_to_peer(id:number,type:string,data:string){
-    this.hosting_connections[id].send(JSON.stringify({type,data}));
-  }
-  send_to_all_peers(type:string,data:string){
-    for(let conn of this.hosting_connections){
-      conn.send(JSON.stringify({type,recieved:data}));
-    }
-  }
-  send_to_host(type:string,data:string){
-    this.peer_host.send(JSON.stringify({type,recieved:data}));
-  }
-  recieve_from_peer(id:number,type:string,data:string){
-    (this.state.current_room as p2p_room).parse_packet(type,data,id);
-  }
-  recieve_from_host(type:string,data:string){
-    switch(type){
-      case "change_room":
-        this.loadRoomString(data)
-    }
-    if(this.state.current_room){
-      (this.state.current_room as p2p_room).parse_packet(type,data,undefined);
-    }
-  }
-  async loadRoomString(x:string){
-    this.send_to_all_peers("change_room",x);
-    let result = await super.loadRoomString(x);
-    if(this.type == peer_connection.child){
-      this.send_to_host("finished_change_room","success");
-    }
-    return result;
-  }  
 }
